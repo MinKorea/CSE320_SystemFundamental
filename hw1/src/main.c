@@ -10,8 +10,22 @@ int main(int argc, char **argv)
         USAGE(*argv, EXIT_FAILURE);
     if(global_options == HELP_OPTION)
         USAGE(*argv, EXIT_SUCCESS);
-    // TO BE IMPLEMENTED
-    return EXIT_FAILURE; 
+    else
+    {
+        read_distance_data(stdin);
+
+        if(global_options == MATRIX_OPTION)
+        {
+
+        }
+        else if(global_options == NEWICK_OPTION)
+        {
+            
+        }
+    }
+
+    return EXIT_FAILURE;
+
 }
 
 /*

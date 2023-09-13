@@ -3,6 +3,72 @@
 #include "global.h"
 #include "debug.h"
 
+
+
+double ten_pow(int x)
+{
+    double result = 1;
+
+    if(x >= 0)
+    {
+        for(int i = 0; i < x; i++)  result *= 10;
+    }
+    else
+    {
+        x *= -1;
+        for(int i = 0; i < x; i++)  result /= 10;
+    }
+
+    return result;
+}
+
+double str_to_double(char *c)
+{
+    double result = 0;
+    int digit = -1;
+    int length = 0;
+    int idx = 0;
+    int negative_flag = 0;
+    int fraction_flag = 0;
+
+    while(*(c + idx) != 0)
+    {
+        length++;
+
+        if(*(c + idx) == '.' || *(c + idx) == '-')
+        {
+            if(*(c + idx) == '.')   fraction_flag = 1;
+            idx++;
+            continue;
+        }
+
+        if(fraction_flag == 0) digit++;
+        idx++;
+    }
+
+    if(*c == '-')   negative_flag = 1;
+
+    for(int i = 0; i < length; i++)
+    {
+        if(*c == '.' || *c == '-')
+        {
+            c++;
+            i--;
+            length--;
+            continue;
+        }
+        int digit_cal = digit - i;
+
+        result += ((double)(*c - '0') * ten_pow(digit_cal));
+        c++;
+    }
+
+    if(negative_flag != 0)  result *= -1;
+
+    return result;
+
+}
+
 /**
  * @brief  Read genetic distance data and initialize data structures.
  * @details  This function reads genetic distance data from a specified
@@ -52,8 +118,126 @@
  * message to be printed to stderr and -1 to be returned.
  */
 
+
+
 int read_distance_data(FILE *in) {
     // TO BE IMPLEMENTED
+    if(in != NULL)
+    {
+        int col_cnt = 0;
+        int row_cnt = 0;
+        int chr_cnt = 0;
+        num_taxa = 0;
+        char c;
+
+        while(!feof(in))
+        {
+            c = fgetc(in);
+
+            if(c == '#')
+            {
+                while(c != '\n')    c = fgetc(in);
+                continue;
+            }
+            else
+            {
+                int i = 0;
+
+                while(col_cnt == 0)
+                {
+                    if(c == ',')
+                    {
+                        c = fgetc(in);
+
+                        if(i != 0)
+                        {
+                            num_taxa++;
+                        }
+                        i = 0;
+                        continue;
+                    }
+                    else
+                    {
+                        *(*(node_names + num_taxa) + i) = c;
+                        c = fgetc(in);
+                        i++;
+                    }
+
+                    if(c == '\n')
+                    {
+                        num_taxa++;
+                        col_cnt++;
+                    }
+                }
+
+                num_all_nodes = num_taxa;
+                num_active_nodes = num_taxa;
+
+                for(int i = 0; i < num_taxa; i++)
+                {
+                    if(feof(in))    break;
+
+                    row_cnt = 0;
+
+                    while(row_cnt == 0)
+                    {
+                        c = fgetc(in);
+                        if(c == ',')    row_cnt++;
+                    }
+
+                     c = fgetc(in);
+
+                    for(int j = 0; j < num_taxa; j++)
+                    {
+                        if(c == ',')    c = fgetc(in);
+                        else if(c == '\n')
+                        {
+                            c = fgetc(in);
+                            break;
+                        }
+
+                        int num_len = 0;
+                        double distance;
+
+                        while(c != ',' && c != '\n')
+                        {
+                            *(input_buffer + num_len) = c;
+                            num_len++;
+                            c = fgetc(in);
+                        }
+                        *(input_buffer + num_len) = 0;
+                        distance = str_to_double(input_buffer);
+                        distances[i][j] = distance;
+                    }
+                }
+
+            }
+        }
+
+        for(int i = 0; i < num_taxa; i++)
+        {
+            if(distances[i][i] != 0)    return -1;
+            for(int j = 0; j <= i; j++)
+            {
+                if(distances[i][j] != distances[j][i])  return -1;
+            }
+        }
+
+        printf("%f\n", str_to_double("-10.01"));
+
+        for(int i = 0; i < num_taxa; i++)
+        {
+            printf("%s\t", *(node_names + i));
+            for(int j = 0; j < num_taxa; j++)
+            {
+                printf("%.2f\t", distances[i][j]);
+            }
+            printf("\n");
+        }
+
+        return 0;
+    }
+    return -1;
     abort();
 }
 
@@ -91,6 +275,7 @@ int read_distance_data(FILE *in) {
  */
 int emit_newick_format(FILE *out) {
     // TO BE IMPLEMENTED
+    printf("EMIT_NEWICK_FORMAT_EXECUTED");
     abort();
 }
 
@@ -113,6 +298,7 @@ int emit_newick_format(FILE *out) {
  */
 int emit_distance_matrix(FILE *out) {
     // TO BE IMPLEMENTED
+    printf("EMIT_DISTANCE_MATRIX_EXECUTED");
     abort();
 }
 
@@ -163,5 +349,6 @@ int emit_distance_matrix(FILE *out) {
  */
 int build_taxonomy(FILE *out) {
     // TO BE IMPLEMENTED
+    printf("BUILD_TAXONOMY_EXECUTED");
     abort();
 }
