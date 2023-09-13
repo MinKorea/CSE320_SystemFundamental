@@ -119,7 +119,7 @@ int active_node_map[MAX_NODES];
  * For a leaf node, there is just one adjacent node, which is
  * pointed at by neighbors[0], and other two entries are NULL.
  * For an internal node, there are exactly three adjacent nodes,
- * so all three entries contain a valid pointer.  
+ * so all three entries contain a valid pointer.
  * Since the final tree is unrooted, there is ultimately no particular
  * distinction ("parent" or "child") among the three neighbors of
  * an internal node.  However, as you are creating the tree, you

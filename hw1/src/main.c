@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 
         if(global_options == MATRIX_OPTION)
         {
-
+            
         }
         else if(global_options == NEWICK_OPTION)
         {

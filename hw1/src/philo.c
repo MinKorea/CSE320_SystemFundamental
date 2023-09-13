@@ -210,8 +210,13 @@ int read_distance_data(FILE *in) {
                         distances[i][j] = distance;
                     }
                 }
-
             }
+        }
+
+        for(int i = 0; i < num_taxa; i++)
+        {
+            active_node_map[i] = i;
+            nodes[i].name = node_names[i];
         }
 
         for(int i = 0; i < num_taxa; i++)
@@ -222,8 +227,6 @@ int read_distance_data(FILE *in) {
                 if(distances[i][j] != distances[j][i])  return -1;
             }
         }
-
-        printf("%f\n", str_to_double("-10.01"));
 
         for(int i = 0; i < num_taxa; i++)
         {
@@ -238,7 +241,6 @@ int read_distance_data(FILE *in) {
         return 0;
     }
     return -1;
-    abort();
 }
 
 /**
