@@ -14,13 +14,15 @@ int main(int argc, char **argv)
     {
         read_distance_data(stdin);
 
+        build_taxonomy(stdout);
+
         if(global_options == MATRIX_OPTION)
         {
-            
+            emit_distance_matrix(stdout);
         }
         else if(global_options == NEWICK_OPTION)
         {
-            
+            emit_newick_format(stdout);
         }
     }
 

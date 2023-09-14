@@ -207,7 +207,7 @@ int read_distance_data(FILE *in) {
                         }
                         *(input_buffer + num_len) = 0;
                         distance = str_to_double(input_buffer);
-                        distances[i][j] = distance;
+                        *(*(distances + i) + j) = distance;
                     }
                 }
             }
@@ -215,16 +215,18 @@ int read_distance_data(FILE *in) {
 
         for(int i = 0; i < num_taxa; i++)
         {
-            active_node_map[i] = i;
-            nodes[i].name = node_names[i];
+            *(active_node_map + i) = i;
+
+            (nodes + i)->name = *(node_names + i);
         }
 
         for(int i = 0; i < num_taxa; i++)
         {
-            if(distances[i][i] != 0)    return -1;
+            if(*(*(distances + i) + i) != 0)    return -1;
             for(int j = 0; j <= i; j++)
             {
-                if(distances[i][j] != distances[j][i])  return -1;
+                if(*(*(distances + i) + j) != *(*(distances + j) + i))
+                    return -1;
             }
         }
 
@@ -351,6 +353,91 @@ int emit_distance_matrix(FILE *out) {
  */
 int build_taxonomy(FILE *out) {
     // TO BE IMPLEMENTED
-    printf("BUILD_TAXONOMY_EXECUTED");
-    abort();
+    for(int i = 0; i < num_active_nodes; i++)
+    {
+        double sum = 0;
+
+        for(int j = 0; j < num_active_nodes; j++)
+        {
+            sum += *(*(distances + i) + j);
+        }
+        *(row_sums + i) = sum;
+    }
+
+    double q_low = (num_active_nodes - 2) * (*(*distances) + 1) - (*row_sums) - (*row_sums + 1);
+
+    int q_idx_i = 0, q_idx_j = 1;   // skip (0,0)
+
+    for (int i = 0; i < num_active_nodes; i++)
+    {
+        for (int j = 0; j < num_active_nodes; j++)
+        {
+            if(i == j)  continue;
+
+            int temp = (num_active_nodes - 2) * (*(*distances + i) + j) - (*(row_sums + i)) - (*(row_sums + j));
+
+            if(temp < q_low)
+            {
+                q_low = temp;
+                q_idx_i = i;
+                q_idx_j = j;
+            }
+        }
+    }
+
+    *(*(node_names + num_all_nodes)) = '#';
+
+    int conv_num = num_all_nodes;
+    int conv_num_idx = 1;
+
+    while(conv_num > 0)
+    {
+        int temp_conv_num = conv_num;
+        int conv_num_digit = 1;
+
+        while(temp_conv_num > 10)
+        {
+            temp_conv_num /= 10;
+            conv_num_digit *= 10;
+        }
+
+        int div = conv_num / conv_num_digit;
+        *(*(node_names + num_all_nodes) + conv_num_idx) = div;
+        conv_num_idx++;
+        conv_num %= conv_num_digit;
+    }
+
+    (*(nodes + num_all_nodes)).name = *(node_names + num_all_nodes);
+    // Setting new node's children
+    *((*(nodes + num_all_nodes)).neighbors + 1) = nodes + q_idx_i;
+    *((*(nodes + num_all_nodes)).neighbors + 2) = nodes + q_idx_j;
+    // Setting nodes' parent
+    *((*(nodes + q_idx_i)).neighbors + 0) = nodes + num_all_nodes;
+    *((*(nodes + q_idx_j)).neighbors + 0) = nodes + num_all_nodes;
+
+    *(active_node_map + num_all_nodes) = num_all_nodes;
+
+    for(int i = 0; i <= num_all_nodes; i++)
+    {
+        if(i == num_all_nodes)
+            *(*(distances + num_all_nodes) + i) = 0;
+        else if(i == q_idx_i)
+            *(*(distances + num_all_nodes) + i)
+                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_i) - *(row_sums + q_idx_j)) / (num_active_nodes - 2)) / 2;
+        else if(i == q_idx_j)
+            *(*(distances + num_all_nodes) + i)
+                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_j) - *(row_sums + q_idx_i)) / (num_active_nodes - 2)) / 2;
+        else
+            *(*(distances + num_all_nodes) + i)
+                = (*(*(distances + q_idx_i) + i) + *(*(distances + q_idx_j) + i) - *(*(distances + q_idx_i) + q_idx_j)) / 2;
+
+        *(*(distances + i) + num_all_nodes) = *(*(distances + num_all_nodes) + i);
+    }
+
+    num_all_nodes++;
+    num_active_nodes--;
+
+
+
+    return 0;
 }
