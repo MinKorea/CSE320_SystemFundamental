@@ -230,7 +230,7 @@ int read_distance_data(FILE *in) {
             }
         }
 
-        for(int i = 0; i < num_taxa; i++)
+        /*for(int i = 0; i < num_taxa; i++)
         {
             printf("%s\t", *(node_names + i));
             for(int j = 0; j < num_taxa; j++)
@@ -238,7 +238,7 @@ int read_distance_data(FILE *in) {
                 printf("%.2f\t", distances[i][j]);
             }
             printf("\n");
-        }
+        }*/
 
         return 0;
     }
@@ -302,8 +302,25 @@ int emit_newick_format(FILE *out) {
  */
 int emit_distance_matrix(FILE *out) {
     // TO BE IMPLEMENTED
-    printf("EMIT_DISTANCE_MATRIX_EXECUTED");
-    abort();
+    for(int i = 0; i < num_all_nodes; i++)
+    {
+        fprintf(out, ",%s", *(node_names + i));
+    }
+
+    fprintf(out, "\n");
+
+    for(int i = 0; i < num_all_nodes; i++)
+    {
+        fprintf(out, "%s,", *(node_names + i));
+        for(int j = 0; j < num_all_nodes - 1; j++)
+        {
+            fprintf(out, "%.2f,", *(*(distances + i) + j));
+        }
+        fprintf(out, "%.2f", *(*(distances + i) + num_all_nodes - 1));
+        printf("\n");
+    }
+
+    return 0;
 }
 
 /**
@@ -353,89 +370,144 @@ int emit_distance_matrix(FILE *out) {
  */
 int build_taxonomy(FILE *out) {
     // TO BE IMPLEMENTED
-    for(int i = 0; i < num_active_nodes; i++)
+    while(num_active_nodes > 2)
     {
-        double sum = 0;
-
-        for(int j = 0; j < num_active_nodes; j++)
+        for(int i = 0; i < num_all_nodes; i++)
         {
-            sum += *(*(distances + i) + j);
-        }
-        *(row_sums + i) = sum;
-    }
+            double sum = 0;
 
-    double q_low = (num_active_nodes - 2) * (*(*distances) + 1) - (*row_sums) - (*row_sums + 1);
+            if(*(active_node_map + i) == -1)    continue;
 
-    int q_idx_i = 0, q_idx_j = 1;   // skip (0,0)
-
-    for (int i = 0; i < num_active_nodes; i++)
-    {
-        for (int j = 0; j < num_active_nodes; j++)
-        {
-            if(i == j)  continue;
-
-            int temp = (num_active_nodes - 2) * (*(*distances + i) + j) - (*(row_sums + i)) - (*(row_sums + j));
-
-            if(temp < q_low)
+            for(int j = 0; j < num_all_nodes; j++)
             {
-                q_low = temp;
-                q_idx_i = i;
-                q_idx_j = j;
+                if(*(active_node_map + j) == -1)    continue;
+
+                sum += *(*(distances + i) + j);
+            }
+            *(row_sums + i) = sum;
+        }
+
+        double q_low = 1;
+
+        int q_idx_i = 0, q_idx_j = 0;
+
+        for (int i = 0; i < num_all_nodes; i++)
+        {
+            if(*(active_node_map + i) == -1)    continue;
+
+            for (int j = 0; j < num_all_nodes; j++)
+            {
+                if(i == j)  continue;
+                if(*(active_node_map + j) == -1)    continue;
+
+                int temp = (num_active_nodes - 2) * (*(*distances + i) + j) - (*(row_sums + i)) - (*(row_sums + j));
+
+                if(temp < q_low)
+                {
+                    q_low = temp;
+                    q_idx_i = i;
+                    q_idx_j = j;
+                }
             }
         }
-    }
 
-    *(*(node_names + num_all_nodes)) = '#';
+        *(*(node_names + num_all_nodes)) = '#';
 
-    int conv_num = num_all_nodes;
-    int conv_num_idx = 1;
+        int conv_num = num_all_nodes;
+        int conv_num_idx = 1;
 
-    while(conv_num > 0)
-    {
-        int temp_conv_num = conv_num;
-        int conv_num_digit = 1;
-
-        while(temp_conv_num > 10)
+        while(conv_num > 0)
         {
-            temp_conv_num /= 10;
-            conv_num_digit *= 10;
+            int temp_conv_num = conv_num;
+            int conv_num_digit = 1;
+
+            while(temp_conv_num >= 10)
+            {
+                temp_conv_num /= 10;
+                conv_num_digit *= 10;
+            }
+
+            int div = conv_num / conv_num_digit;
+            *(*(node_names + num_all_nodes) + conv_num_idx) = div + '0';
+
+            conv_num %= conv_num_digit;
+            conv_num_idx++;
+
+            if(conv_num_digit > 1 && conv_num == 0)
+            {
+                while(conv_num_digit > 1)
+                {
+                    *(*(node_names + num_all_nodes) + conv_num_idx) = '0';
+                    conv_num_digit /= 10;
+                    conv_num_idx++;
+                }
+                break;
+            }
+
         }
 
-        int div = conv_num / conv_num_digit;
-        *(*(node_names + num_all_nodes) + conv_num_idx) = div;
-        conv_num_idx++;
-        conv_num %= conv_num_digit;
+        (*(nodes + num_all_nodes)).name = *(node_names + num_all_nodes);
+        // Setting new node's children
+        *((*(nodes + num_all_nodes)).neighbors + 1) = nodes + q_idx_i;
+        *((*(nodes + num_all_nodes)).neighbors + 2) = nodes + q_idx_j;
+        // Setting nodes' parent
+        *((*(nodes + q_idx_i)).neighbors + 0) = nodes + num_all_nodes;
+        *((*(nodes + q_idx_j)).neighbors + 0) = nodes + num_all_nodes;
+
+        *(active_node_map + num_all_nodes) = num_all_nodes;
+
+        for(int i = 0; i <= num_all_nodes; i++)
+        {
+            if(i == num_all_nodes)
+                *(*(distances + num_all_nodes) + i) = 0;
+            else if(i == q_idx_i)
+                {
+                    *(*(distances + num_all_nodes) + i)
+                                    = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_i) - *(row_sums + q_idx_j)) / (num_active_nodes - 2)) / 2;
+
+                    // if(global_options == 0x0)
+                        // fprintf(out, "%d,%d,%.2f\n", i, num_all_nodes, *(*(distances + num_all_nodes) + i));
+                }
+            else if(i == q_idx_j)
+                {
+                    *(*(distances + num_all_nodes) + i)
+                                    = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_j) - *(row_sums + q_idx_i)) / (num_active_nodes - 2)) / 2;
+
+                    // if(global_options == 0x0)
+                        // fprintf(out, "%d,%d,%.2f\n", i, num_all_nodes, *(*(distances + num_all_nodes) + i));
+                }
+            else
+                {
+                    *(*(distances + num_all_nodes) + i)
+                                    = (*(*(distances + q_idx_i) + i) + *(*(distances + q_idx_j) + i) - *(*(distances + q_idx_i) + q_idx_j)) / 2;
+                    // fprintf(out, "%d,%d,%.2f\n", i, num_all_nodes, *(*(distances + num_all_nodes) + i));
+                }
+
+            if(*(active_node_map + i) == -1)
+                *(*(distances + num_all_nodes) + i) = 0;
+
+            *(*(distances + i) + num_all_nodes) = *(*(distances + num_all_nodes) + i);
+
+
+        }
+
+        num_all_nodes++;
+        num_active_nodes--;
+        *(active_node_map + q_idx_i) = -1;
+        *(active_node_map + q_idx_j) = -1;
     }
 
-    (*(nodes + num_all_nodes)).name = *(node_names + num_all_nodes);
-    // Setting new node's children
-    *((*(nodes + num_all_nodes)).neighbors + 1) = nodes + q_idx_i;
-    *((*(nodes + num_all_nodes)).neighbors + 2) = nodes + q_idx_j;
-    // Setting nodes' parent
-    *((*(nodes + q_idx_i)).neighbors + 0) = nodes + num_all_nodes;
-    *((*(nodes + q_idx_j)).neighbors + 0) = nodes + num_all_nodes;
 
-    *(active_node_map + num_all_nodes) = num_all_nodes;
 
-    for(int i = 0; i <= num_all_nodes; i++)
-    {
-        if(i == num_all_nodes)
-            *(*(distances + num_all_nodes) + i) = 0;
-        else if(i == q_idx_i)
-            *(*(distances + num_all_nodes) + i)
-                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_i) - *(row_sums + q_idx_j)) / (num_active_nodes - 2)) / 2;
-        else if(i == q_idx_j)
-            *(*(distances + num_all_nodes) + i)
-                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_j) - *(row_sums + q_idx_i)) / (num_active_nodes - 2)) / 2;
-        else
-            *(*(distances + num_all_nodes) + i)
-                = (*(*(distances + q_idx_i) + i) + *(*(distances + q_idx_j) + i) - *(*(distances + q_idx_i) + q_idx_j)) / 2;
-
-        *(*(distances + i) + num_all_nodes) = *(*(distances + num_all_nodes) + i);
-    }
-
-    num_all_nodes++;
-    num_active_nodes--;
+    /*for(int i = 0; i < num_all_nodes; i++)
+        {
+            printf("%s\t", *(node_names + i));
+            for(int j = 0; j < num_all_nodes; j++)
+            {
+                printf("%.2f\t", distances[i][j]);
+            }
+            printf("\n");
+        }*/
 
 
 
