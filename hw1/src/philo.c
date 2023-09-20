@@ -230,16 +230,6 @@ int read_distance_data(FILE *in) {
             }
         }
 
-        /*for(int i = 0; i < num_taxa; i++)
-        {
-            printf("%s\t", *(node_names + i));
-            for(int j = 0; j < num_taxa; j++)
-            {
-                printf("%.2f\t", distances[i][j]);
-            }
-            printf("\n");
-        }*/
-
         return 0;
     }
     return -1;
@@ -364,7 +354,7 @@ int emit_newick_format(FILE *out) {
         }
     }
 
-    printf("Default Node: %s\n", *(node_names + default_node_idx));
+    // printf("Default Node: %s\n", *(node_names + default_node_idx));
 
     if(outlier_name != 0)
     {
@@ -372,7 +362,7 @@ int emit_newick_format(FILE *out) {
         if(default_node_idx == -1)  return -1;
     }
 
-    printf("Default Node: %s\n", (*(nodes + default_node_idx)).name);
+    // printf("Default Node: %s\n", (*(nodes + default_node_idx)).name);
     newick_print_sub(out, *((nodes + default_node_idx)->neighbors + 0), (nodes + default_node_idx));
     fprintf(out, "\n");
     return 0;
