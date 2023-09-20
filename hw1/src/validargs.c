@@ -20,10 +20,7 @@
  */
 int validargs(int argc, char **argv)
 {
-    if(*(*argv) == 'b' && *((*argv) + 1) == 'i' && *((*argv) + 2) == 'n' && *((*argv) + 3) == '/'
-        && *((*argv) + 4) == 'p' && *((*argv) + 5) == 'h' && *((*argv) + 6) == 'i' && *((*argv) + 7) == 'l' && *((*argv) + 8) == 'o')
-    {
-        if(*(argv + 1) == 0)
+        if (argc == 1)
         {
             return 0;
         }
@@ -50,42 +47,41 @@ int validargs(int argc, char **argv)
                 }
                 else if(*(*(argv + 1) + 1)== 'n')
                 {
-                    if(*(*(argv + 2)) == '-' && *(*(argv + 2) + 1) == 'o')
+                    if(argc != 2)
                     {
-                        if(*(argv+ 3) == 0)
+                        if(*(*(argv + 2)) == '-' && *(*(argv + 2) + 1) == 'o')
+                        {
+                            if(*(argv+ 3) == 0)
+                            {
+                                global_options = 0x0;
+                                return -1;
+                            }
+                            else    outlier_name = *(argv + 3);
+
+                            global_options = NEWICK_OPTION;
+                            return 0;
+                        }
+                        else if(*(argv+ 3) != 0)
                         {
                             global_options = 0x0;
                             return -1;
                         }
-                        else    outlier_name = *(argv + 3);
-
+                    }
+                    else
+                    {
                         global_options = NEWICK_OPTION;
                         return 0;
                     }
-                    else if(*(argv+ 3) != 0)
-                    {
-                        global_options = 0x0;
-                        return -1;
-                    }
-                    global_options = NEWICK_OPTION;
-                    return 0;
-
                 }
-                global_options = 0x0;
-                return -1;
+                else
+                {
+                    global_options = 0x0;
+                    return -1;
+                }
             }
         }
-        else
-        {
-            global_options = 0x0;
-            return -1;
-        }
 
-    }
-    else
-    {
         global_options = 0x0;
         return -1;
-    }
 
 }

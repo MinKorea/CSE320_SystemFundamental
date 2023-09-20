@@ -277,10 +277,91 @@ int read_distance_data(FILE *in) {
  * non-NULL, then it is an error if no leaf node with that name exists
  * in the tree.
  */
+
+int get_name_idx(char *name, int num_of_names)
+{
+    char *c = name;
+
+    for(int i = 0; i < num_of_names; i++)
+    {
+        int char_cnt = 0;
+
+        char *c2 = *(node_names + i);
+
+        while(*c != 0 && *c2 != 0)
+        {
+            if(*(c + char_cnt) != *c2)                 break;
+            if(*(c + char_cnt) == 0 && *c2 != 0)       break;
+            else if(*(c + char_cnt) != 0 && *c2 == 0)  break;
+
+            if(*((c + char_cnt) + 1) == 0 && *(c2 + 1) == 0)
+            {
+                return i;
+            }
+
+            char_cnt++;
+            c2++;
+        }
+    }
+
+
+
+    return -1;  // if nothing matches
+}
+
+void newick_print_sub(FILE *out, NODE *cur_node)
+{
+    fprintf(out, "(");
+    for(int i = 0; i < 3; i++)
+    {
+        if((*(cur_node)->neighbors + i) != NULL)
+        {
+            newick_print_sub(out, (*(cur_node)->neighbors + i));
+            int name_idx = get_name_idx(cur_node->name, num_all_nodes);
+            fprintf(out, "%s:", *(node_names + name_idx));
+
+            int dest_idx = get_name_idx((*(*(cur_node)->neighbors + i)).name, num_all_nodes);
+            fprintf(out, "%.2f", *(*(distances + name_idx) + dest_idx));
+            fprintf(out, ",");
+        }
+
+        // if((*(cur_node).neighbors + i) != 0)    fprintf(out, ",");
+    }
+    fprintf(out, ")");
+}
+
 int emit_newick_format(FILE *out) {
     // TO BE IMPLEMENTED
-    printf("EMIT_NEWICK_FORMAT_EXECUTED");
-    abort();
+
+    int default_node_idx = 0;
+
+    double greatest = 0;
+
+    for(int i = 0; i < num_taxa; i++)
+    {
+        for(int j = 0; j < num_taxa; j++)
+        {
+            double temp = *(*(distances + i) + j);
+            if(temp > greatest)
+            {
+                greatest = temp;
+                default_node_idx = (i < j) ? i : j;
+            }
+        }
+    }
+
+    printf("Default Node: %s\n", *(node_names + default_node_idx));
+
+    if(outlier_name != 0)
+    {
+        default_node_idx = get_name_idx(outlier_name, num_taxa);
+        if(default_node_idx == -1)  return -1;
+    }
+
+    printf("Default Node: %s\n", (*(nodes + default_node_idx)).name);
+    newick_print_sub(out, (nodes + default_node_idx));
+
+    return 0;
 }
 
 /**
@@ -522,7 +603,10 @@ int build_taxonomy(FILE *out) {
         printf("\n");*/
     }
 
-    fprintf(out, "%d,%d,%.2f\n", *(active_node_map + 1), *(active_node_map), *(*(distances + *(active_node_map + 1)) + *(active_node_map)));
+    *((*(nodes + num_all_nodes - 1)).neighbors + 0) = nodes + *(active_node_map + 1);
+
+    if(global_options == 0x0)
+        fprintf(out, "%d,%d,%.2f\n", *(active_node_map + 1), *(active_node_map), *(*(distances + *(active_node_map + 1)) + *(active_node_map)));
 
 
     /*for(int i = 0; i < num_all_nodes; i++)
