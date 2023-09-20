@@ -278,7 +278,7 @@ int read_distance_data(FILE *in) {
  * in the tree.
  */
 
-int get_name_idx(char *name, int num_of_names)
+int get_cur_idx(char *name, int num_of_names)
 {
     char *c = name;
 
@@ -309,25 +309,39 @@ int get_name_idx(char *name, int num_of_names)
     return -1;  // if nothing matches
 }
 
-void newick_print_sub(FILE *out, NODE *cur_node)
+void newick_print_sub(FILE *out, NODE *cur_node, NODE *prt_node)
 {
-    fprintf(out, "(");
+    int cur_idx = get_cur_idx(cur_node->name, num_all_nodes);
+    int prt_idx = get_cur_idx(prt_node->name, num_all_nodes);
+
     for(int i = 0; i < 3; i++)
     {
-        if((*(cur_node)->neighbors + i) != NULL)
-        {
-            newick_print_sub(out, (*(cur_node)->neighbors + i));
-            int name_idx = get_name_idx(cur_node->name, num_all_nodes);
-            fprintf(out, "%s:", *(node_names + name_idx));
 
-            int dest_idx = get_name_idx((*(*(cur_node)->neighbors + i)).name, num_all_nodes);
-            fprintf(out, "%.2f", *(*(distances + name_idx) + dest_idx));
-            fprintf(out, ",");
+        if(*((cur_node)->neighbors + i) == prt_node)
+        {
+            continue;
         }
 
-        // if((*(cur_node).neighbors + i) != 0)    fprintf(out, ",");
+        if(*((cur_node)->neighbors + i) != NULL
+            && *((cur_node)->neighbors + i) != prt_node)
+        {
+            if(i == 0)  fprintf(out, "(");
+            else if(i == 1
+                && *((cur_node)->neighbors + i - 1) == prt_node)
+                        fprintf(out, "(");
+            else        fprintf(out, ",");
+
+            newick_print_sub(out, *(cur_node->neighbors + i), cur_node);
+
+            if(i == 2)  fprintf(out, ")");
+            else if(*((prt_node)->neighbors + i) == NULL)
+                fprintf(out, ")");
+
+            }
     }
-    fprintf(out, ")");
+
+    fprintf(out, "%s:", *(node_names + cur_idx));
+    fprintf(out, "%.2f", *(*(distances + cur_idx) + prt_idx));
 }
 
 int emit_newick_format(FILE *out) {
@@ -354,13 +368,13 @@ int emit_newick_format(FILE *out) {
 
     if(outlier_name != 0)
     {
-        default_node_idx = get_name_idx(outlier_name, num_taxa);
+        default_node_idx = get_cur_idx(outlier_name, num_taxa);
         if(default_node_idx == -1)  return -1;
     }
 
     printf("Default Node: %s\n", (*(nodes + default_node_idx)).name);
-    newick_print_sub(out, (nodes + default_node_idx));
-
+    newick_print_sub(out, *((nodes + default_node_idx)->neighbors + 0), (nodes + default_node_idx));
+    fprintf(out, "\n");
     return 0;
 }
 
