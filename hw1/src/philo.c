@@ -337,6 +337,8 @@ int get_cur_idx(char *name, int num_of_names)
 
 void newick_print_sub(FILE *out, NODE *cur_node, NODE *prt_node)
 {
+    // printf("ptr_node name: %s\n", prt_node->name);
+    // printf("cur_node name: %s\n", cur_node->name);
     int cur_idx = get_cur_idx(cur_node->name, num_all_nodes);
     int prt_idx = get_cur_idx(prt_node->name, num_all_nodes);
 
@@ -399,6 +401,8 @@ int emit_newick_format(FILE *out) {
     }
 
     // printf("Default Node: %s\n", (*(nodes + default_node_idx)).name);
+    // printf("Default Node's idx: %d\n", default_node_idx);
+    // printf("Default Node's neighbor[0]: %s\n", (*((nodes + default_node_idx)->neighbors + 0))->name);
     newick_print_sub(out, *((nodes + default_node_idx)->neighbors + 0), (nodes + default_node_idx));
     fprintf(out, "\n");
     return 0;
@@ -537,10 +541,28 @@ int build_taxonomy(FILE *out) {
                     act_i = i;
                     q_idx_j = *(active_node_map + j);
                     act_j = j;
+
+                    if(i > j)
+                    {
+                        q_idx_i = *(active_node_map + j);
+                        act_i = j;
+                        q_idx_j = *(active_node_map + i);
+                        act_j = i;
+                    }
                 }
             }
             // printf("\n");
         }
+
+        printf("#Active nodes: %d\n", num_active_nodes);
+        for(int i = 0; i < num_active_nodes; i++)
+        {
+            printf("%d\t", *(active_node_map + i));
+        }
+        printf("\n");
+        printf("Q_i: %d\n", q_idx_i);
+        printf("Q_j: %d\n", q_idx_j);
+        printf("Q_low: %.2f\n", q_low);
 
 
         *(*(node_names + num_all_nodes)) = '#';
@@ -586,33 +608,33 @@ int build_taxonomy(FILE *out) {
         *((*(nodes + q_idx_i)).neighbors + 0) = nodes + num_all_nodes;
         *((*(nodes + q_idx_j)).neighbors + 0) = nodes + num_all_nodes;
 
-        *(active_node_map + num_all_nodes) = num_all_nodes;
+        // *(active_node_map + num_all_nodes) = num_all_nodes;
 
         for(int i = 0; i <= num_active_nodes; i++)
         {
             if(*(active_node_map + i) == num_all_nodes)
                 *(*(distances + num_all_nodes) + *(active_node_map + i)) = 0;
             else if(*(active_node_map + i) == q_idx_i)
-                {
-                    *(*(distances + num_all_nodes) + *(active_node_map + i))
-                                    = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_i) - *(row_sums + q_idx_j)) / (num_active_nodes - 2)) / 2;
+            {
+                *(*(distances + num_all_nodes) + *(active_node_map + i))
+                                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_i) - *(row_sums + q_idx_j)) / (num_active_nodes - 2)) / 2;
 
-                    if(global_options == 0x0)
-                        fprintf(out, "%d,%d,%.2f\n", *(active_node_map + i), num_all_nodes, *(*(distances + num_all_nodes) + *(active_node_map + i)));
-                }
+                if(global_options == 0x0)
+                    fprintf(out, "%d,%d,%.2f\n", *(active_node_map + i), num_all_nodes, *(*(distances + num_all_nodes) + *(active_node_map + i)));
+            }
             else if(*(active_node_map + i) == q_idx_j)
-                {
-                    *(*(distances + num_all_nodes) + *(active_node_map + i))
-                                    = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_j) - *(row_sums + q_idx_i)) / (num_active_nodes - 2)) / 2;
+            {
+                *(*(distances + num_all_nodes) + *(active_node_map + i))
+                                = (*(*(distances + q_idx_i) + q_idx_j) + (*(row_sums + q_idx_j) - *(row_sums + q_idx_i)) / (num_active_nodes - 2)) / 2;
 
-                    if(global_options == 0x0)
-                        fprintf(out, "%d,%d,%.2f\n", *(active_node_map + i), num_all_nodes, *(*(distances + num_all_nodes) + *(active_node_map + i)));
-                }
+                if(global_options == 0x0)
+                    fprintf(out, "%d,%d,%.2f\n", *(active_node_map + i), num_all_nodes, *(*(distances + num_all_nodes) + *(active_node_map + i)));
+            }
             else
-                {
-                    *(*(distances + num_all_nodes) + *(active_node_map + i))
-                                    = (*(*(distances + q_idx_i) + *(active_node_map + i)) + *(*(distances + q_idx_j) + *(active_node_map + i)) - *(*(distances + q_idx_i) + q_idx_j)) / 2;
-                }
+            {
+                *(*(distances + num_all_nodes) + *(active_node_map + i))
+                                = (*(*(distances + q_idx_i) + *(active_node_map + i)) + *(*(distances + q_idx_j) + *(active_node_map + i)) - *(*(distances + q_idx_i) + q_idx_j)) / 2;
+            }
 
             *(*(distances + *(active_node_map + i)) + num_all_nodes) = *(*(distances + num_all_nodes) + *(active_node_map + i));
 
@@ -643,21 +665,12 @@ int build_taxonomy(FILE *out) {
         printf("\n");*/
     }
 
-    *((*(nodes + num_all_nodes - 1)).neighbors + 0) = nodes + *(active_node_map + 1);
+    *((*(nodes + *(active_node_map + 0))).neighbors + 0) = nodes + *(active_node_map + 1);
+    *((*(nodes + *(active_node_map + 1))).neighbors + 0) = nodes + *(active_node_map + 0);
 
     if(global_options == 0x0)
         fprintf(out, "%d,%d,%.2f\n", *(active_node_map + 1), *(active_node_map), *(*(distances + *(active_node_map + 1)) + *(active_node_map)));
 
-
-    /*for(int i = 0; i < num_all_nodes; i++)
-        {
-            printf("%s\t", *(node_names + i));
-            for(int j = 0; j < num_all_nodes; j++)
-            {
-                printf("%.2f\t", distances[i][j]);
-            }
-            printf("\n");
-        }*/
 
     return 0;
 }
