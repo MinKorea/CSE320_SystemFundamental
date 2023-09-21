@@ -184,24 +184,38 @@ int read_distance_data(FILE *in) {
 
                     while(row_cnt == 0)
                     {
+
+
                         c = fgetc(in);
 
-                        if (*(*(node_names +i) + j) == '\0')
+                        if (*(*(node_names + i) + j) == '\0')
                         {
                             if(c == ',')    break;
-                            else            return -1;
+                            else
+                            {
+                                printf("file longer\n");
+                                return -1;
+                            }
                         }
-                        cmp = *(*(node_names + i) + j);
-                        
-
-                        if(c == ',')
+                        else if(c == ',')
                         {
-                            if(cmp != '\0')    return -1;
                             row_cnt++;
                         }
-                        else if(cmp == '\0')   return -1;
 
-                        if(cmp != c)           return -1;
+                        if(c == '#')
+                        {
+                            while(c != '\n')    c = fgetc(in);
+                            continue;
+                        }
+
+                        cmp = *(*(node_names + i) + j);
+
+                        if(cmp != c)
+                        {
+                            printf("cmp: %c\tc: %c\n", cmp,c);
+                            printf("node name longer\n");
+                            return -1;
+                        }
 
                         j++;
                     }
