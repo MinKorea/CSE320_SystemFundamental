@@ -126,7 +126,7 @@ int read_distance_data(FILE *in) {
     {
         int col_cnt = 0;
         int row_cnt = 0;
-        int chr_cnt = 0;
+        // int chr_cnt = 0;
         num_taxa = 0;
         char c;
 
@@ -179,10 +179,31 @@ int read_distance_data(FILE *in) {
 
                     row_cnt = 0;
 
+                    char cmp = **(node_names + i);
+                    int j = 0;
+
                     while(row_cnt == 0)
                     {
                         c = fgetc(in);
-                        if(c == ',')    row_cnt++;
+
+                        if (*(*(node_names +i) + j) == '\0')
+                        {
+                            if(c == ',')    break;
+                            else            return -1;
+                        }
+                        cmp = *(*(node_names + i) + j);
+                        
+
+                        if(c == ',')
+                        {
+                            if(cmp != '\0')    return -1;
+                            row_cnt++;
+                        }
+                        else if(cmp == '\0')   return -1;
+
+                        if(cmp != c)           return -1;
+
+                        j++;
                     }
 
                      c = fgetc(in);
@@ -210,6 +231,7 @@ int read_distance_data(FILE *in) {
                         *(*(distances + i) + j) = distance;
                     }
                 }
+
             }
         }
 

@@ -12,20 +12,28 @@ int main(int argc, char **argv)
         USAGE(*argv, EXIT_SUCCESS);
     else
     {
-        read_distance_data(stdin);
-
-        if(build_taxonomy(stdout) == 0)
+        if(read_distance_data(stdin) == 0)
         {
-            if(global_options == MATRIX_OPTION)
+            if(build_taxonomy(stdout) == 0)
             {
-                emit_distance_matrix(stdout);
-            }
-            else if(global_options == NEWICK_OPTION)
-            {
-                emit_newick_format(stdout);
-            }
+                if(global_options == MATRIX_OPTION)
+                {
+                    if(emit_distance_matrix(stdout) == 0)
+                        return EXIT_SUCCESS;
+                    else
+                        return EXIT_FAILURE;
+                }
+                else if(global_options == NEWICK_OPTION)
+                {
+                    if(emit_newick_format(stdout) == 0)
+                        return EXIT_SUCCESS;
+                    else
+                        return EXIT_FAILURE;
+                }
 
-            return EXIT_SUCCESS;
+                return EXIT_SUCCESS;
+            }
+            else return EXIT_FAILURE;
         }
         else return EXIT_FAILURE;
     }
