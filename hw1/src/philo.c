@@ -45,7 +45,7 @@ double str_to_double(char *c)
         if(fraction_flag == 0) digit++;
         idx++;
     }
-
+ 
     if(*c == '-')   negative_flag = 1;
 
     for(int i = 0; i < length; i++)
@@ -526,13 +526,14 @@ int build_taxonomy(FILE *out) {
                     continue;
                 }
 
-                double temp = (num_active_nodes - 2) * (*(*(distances + *(active_node_map + i)) + *(active_node_map + j)))
-                - (*(row_sums + *(active_node_map + i))) - (*(row_sums + *(active_node_map + j)));
+                double temp = (num_active_nodes - 2) * (*(*(distances + *(active_node_map + i)) + *(active_node_map + j))) - (*(row_sums + *(active_node_map + i))) - (*(row_sums + *(active_node_map + j)));
 
                 // printf("D(%d, %d): %.2f\t", *(active_node_map + i), *(active_node_map + j), *(*(distances + *(active_node_map + i)) + *(active_node_map + j)));
                 // printf("S(%d): %.2f\t", *(active_node_map + i), *(row_sums + *(active_node_map + i)));
                 // printf("S(%d): %.2f\t", *(active_node_map + j), *(row_sums + *(active_node_map + j)));
                 // printf("%.2f\t", temp);
+
+                // printf("i: %d, j: %d, q_low: %.2f, temp: %.2f\n", *(active_node_map + i), *(active_node_map + j), q_low, temp);
 
                 if(temp < q_low)
                 {
@@ -554,7 +555,7 @@ int build_taxonomy(FILE *out) {
             // printf("\n");
         }
 
-        printf("#Active nodes: %d\n", num_active_nodes);
+        /*printf("#Active nodes: %d\n", num_active_nodes);
         for(int i = 0; i < num_active_nodes; i++)
         {
             printf("%d\t", *(active_node_map + i));
@@ -562,7 +563,7 @@ int build_taxonomy(FILE *out) {
         printf("\n");
         printf("Q_i: %d\n", q_idx_i);
         printf("Q_j: %d\n", q_idx_j);
-        printf("Q_low: %.2f\n", q_low);
+        printf("Q_low: %.2f\n", q_low);*/
 
 
         *(*(node_names + num_all_nodes)) = '#';
