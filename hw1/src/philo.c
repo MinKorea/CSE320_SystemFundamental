@@ -609,7 +609,7 @@ int build_taxonomy(FILE *out) {
         *((*(nodes + q_idx_i)).neighbors + 0) = nodes + num_all_nodes;
         *((*(nodes + q_idx_j)).neighbors + 0) = nodes + num_all_nodes;
 
-        // *(active_node_map + num_all_nodes) = num_all_nodes;
+        *(active_node_map + num_all_nodes) = num_all_nodes;
 
         for(int i = 0; i <= num_active_nodes; i++)
         {
