@@ -31,6 +31,7 @@
 #define ALLOUTPUT      10
 #define SORTBY         11
 #define NONAMES        12
+#define OUTPUT         13
 
 static struct option_info {
         unsigned int val;
@@ -65,14 +66,18 @@ static struct option_info {
  {SORTBY,         "sortby",    'k',      required_argument, "key",
                   "Sort by {name, id, score}."},
  {NONAMES,        "nonames",   'n',      no_argument, NULL,
-                  "Suppress printing of students' names."}
+                  "Suppress printing of students' names."},
+ {OUTPUT,         "output",    'o',      required_argument, "file",
+                  "Specify file to be used for output."}
 };
 
-static char *short_options = "";
-static struct option long_options[13];
+static char short_options[14] = "";
+static struct option long_options[14];
+
+char colon = ':';
 
 static void init_options() {
-    for(unsigned int i = 0; i < 13; i++) {
+    for(unsigned int i = 0; i < 14; i++) {
         struct option_info *oip = &option_table[i];
         if(oip->val != i) {
             fprintf(stderr, "Option initialization error\n");
@@ -83,7 +88,19 @@ static void init_options() {
         op->has_arg = oip->has_arg;
         op->flag = NULL;
         op->val = oip->val;
+        char* c = &oip->chr;
+        if(*c == 'o' || *c == 'k')
+        {
+            char* add_colon = &colon;
+            strcat(c, add_colon);
+            strcat(short_options, c);
+        }
+        else
+        {
+            strcat(short_options, c);
+        }
     }
+    // printf("short_options: %s\n", short_options);
 }
 
 static int report, collate, freqs, quantiles, summaries, moments,
@@ -108,11 +125,19 @@ char *argv[];
     while(optind < argc) {
         if((optval = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
             switch(optval) {
-            case REPORT: report++; break;
-            case COLLATE: collate++; break;
+            case REPORT:
+            case 'r':
+                report++; break;
+            case COLLATE:
+            case 'c':
+                collate++; break;
             case TABSEP: tabsep++; break;
-            case NONAMES: nonames++; break;
+            case NONAMES:
+            case 'n':
+                nonames++; break;
             case SORTBY:
+            case 'k':
+                printf("optarg: %s\n", optarg);
                 if(!strcmp(optarg, "name"))
                     compare = comparename;
                 else if(!strcmp(optarg, "id"))
@@ -122,7 +147,7 @@ char *argv[];
                 else {
                     fprintf(stderr,
                             "Option '%s' requires argument from {name, id, score}.\n\n",
-                            option_table[(int)optval].name);
+                            option_table[SORTBY].name);
                     usage(argv[0]);
                 }
                 break;
@@ -134,6 +159,11 @@ char *argv[];
             case INDIVIDUALS: scores++; break;
             case HISTOGRAMS: histograms++; break;
             case ALLOUTPUT:
+            case OUTPUT:
+            case 'o':
+                stdout = fopen(optarg, "w");
+                break;
+            case 'a':
                 freqs++; quantiles++; summaries++; moments++;
                 composite++; scores++; histograms++; tabsep++;
                 break;
@@ -157,6 +187,8 @@ char *argv[];
                     option_table[REPORT].name, option_table[COLLATE].name);
             usage(argv[0]);
     }
+
+    // free(short_options);
 
     fprintf(stderr, "Reading input data...\n");
     c = readfile(ifile);
@@ -208,7 +240,7 @@ char *name;
 
     fprintf(stderr, "Usage: %s [options] <data file>\n", name);
     fprintf(stderr, "Valid options are:\n");
-    for(unsigned int i = 0; i < 13; i++) {
+    for(unsigned int i = 0; i < 14; i++) {
             opt = &option_table[i];
             char optchr[5] = {' ', ' ', ' ', ' ', '\0'};
             if(opt->chr)
