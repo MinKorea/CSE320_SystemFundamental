@@ -11,6 +11,8 @@
 #include "write.h"
 #include "normal.h"
 #include "sort.h"
+#include "error.h"
+#include "report.h"
 
 /*
  * Course grade computation program
@@ -67,10 +69,10 @@ static struct option_info {
 };
 
 static char *short_options = "";
-static struct option long_options[12];
+static struct option long_options[13];
 
 static void init_options() {
-    for(unsigned int i = 0; i < 12; i++) {
+    for(unsigned int i = 0; i < 13; i++) {
         struct option_info *oip = &option_table[i];
         if(oip->val != i) {
             fprintf(stderr, "Option initialization error\n");
@@ -89,132 +91,136 @@ static int report, collate, freqs, quantiles, summaries, moments,
 
 static void usage();
 
-int errors, warnings;
+// int errors, warnings;
 
 int orig_main(argc, argv)
 int argc;
 char *argv[];
 {
-        Course *c;
-        Stats *s;
-        char optval;
-        int (*compare)() = comparename;
+    Course *c;
+    Stats *s;
+    char optval;
+    int (*compare)() = comparename;
 
-        fprintf(stderr, BANNER);
-        init_options();
-        if(argc <= 1) usage(argv[0]);
-        while(optind < argc) {
-            if((optval = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
-                switch(optval) {
-                case REPORT: report++; break;
-                case COLLATE: collate++; break;
-                case TABSEP: tabsep++; break;
-                case NONAMES: nonames++; break;
-                case SORTBY:
-                    if(!strcmp(optarg, "name"))
-                        compare = comparename;
-                    else if(!strcmp(optarg, "id"))
-                        compare = compareid;
-                    else if(!strcmp(optarg, "score"))
-                        compare = comparescore;
-                    else {
-                        fprintf(stderr,
-                                "Option '%s' requires argument from {name, id, score}.\n\n",
-                                option_table[(int)optval].name);
-                        usage(argv[0]);
-                    }
-                    break;
-                case FREQUENCIES: freqs++; break;
-                case QUANTILES: quantiles++; break;
-                case SUMMARIES: summaries++; break;
-                case MOMENTS: moments++; break;
-                case COMPOSITES: composite++; break;
-                case INDIVIDUALS: scores++; break;
-                case HISTOGRAMS: histograms++; break;
-                case ALLOUTPUT:
-                    freqs++; quantiles++; summaries++; moments++;
-                    composite++; scores++; histograms++; tabsep++;
-                    break;
-                case '?':
+    fprintf(stderr, BANNER);
+    init_options();
+    if(argc <= 1) usage(argv[0]);
+    while(optind < argc) {
+        if((optval = getopt_long(argc, argv, short_options, long_options, NULL)) != -1) {
+            switch(optval) {
+            case REPORT: report++; break;
+            case COLLATE: collate++; break;
+            case TABSEP: tabsep++; break;
+            case NONAMES: nonames++; break;
+            case SORTBY:
+                if(!strcmp(optarg, "name"))
+                    compare = comparename;
+                else if(!strcmp(optarg, "id"))
+                    compare = compareid;
+                else if(!strcmp(optarg, "score"))
+                    compare = comparescore;
+                else {
+                    fprintf(stderr,
+                            "Option '%s' requires argument from {name, id, score}.\n\n",
+                            option_table[(int)optval].name);
                     usage(argv[0]);
-                    break;
-                default:
-                    break;
                 }
-            } else {
+                break;
+            case FREQUENCIES: freqs++; break;
+            case QUANTILES: quantiles++; break;
+            case SUMMARIES: summaries++; break;
+            case MOMENTS: moments++; break;
+            case COMPOSITES: composite++; break;
+            case INDIVIDUALS: scores++; break;
+            case HISTOGRAMS: histograms++; break;
+            case ALLOUTPUT:
+                freqs++; quantiles++; summaries++; moments++;
+                composite++; scores++; histograms++; tabsep++;
+                break;
+            case '?':
+                usage(argv[0]);
+                break;
+            default:
                 break;
             }
+        } else {
+            break;
         }
-        if(optind == argc) {
-                fprintf(stderr, "No input file specified.\n\n");
-                usage(argv[0]);
-        }
-        char *ifile = argv[optind];
-        if(report == collate) {
-                fprintf(stderr, "Exactly one of '%s' or '%s' is required.\n\n",
-                        option_table[REPORT].name, option_table[COLLATE].name);
-                usage(argv[0]);
-        }
+    }
+    if(optind == argc) {
+            fprintf(stderr, "No input file specified.\n\n");
+            usage(argv[0]);
+    }
+    char *ifile = argv[optind];
+    if(report == collate) {
+            fprintf(stderr, "Exactly one of '%s' or '%s' is required.\n\n",
+                    option_table[REPORT].name, option_table[COLLATE].name);
+            usage(argv[0]);
+    }
 
-        fprintf(stderr, "Reading input data...\n");
-        c = readfile(ifile);
-        if(errors) {
-           printf("%d error%s found, so no computations were performed.\n",
-                  errors, errors == 1 ? " was": "s were");
-           exit(EXIT_FAILURE);
-        }
+    fprintf(stderr, "Reading input data...\n");
+    c = readfile(ifile);
 
-        fprintf(stderr, "Calculating statistics...\n");
-        s = statistics(c);
-        if(s == NULL) fatal("There is no data from which to generate reports.");
-        normalize(c, s);
-        composites(c);
-        sortrosters(c, comparename);
-        checkfordups(c->roster);
-        if(collate) {
-                fprintf(stderr, "Dumping collated data...\n");
-                writecourse(stdout, c);
-                exit(errors ? EXIT_FAILURE : EXIT_SUCCESS);
-        }
-        sortrosters(c, compare);
+    if(errors) {
+       printf("%d error%s found, so no computations were performed.\n",
+              errors, errors == 1 ? " was": "s were");
+       exit(EXIT_FAILURE);
+    }
 
-        fprintf(stderr, "Producing reports...\n");
-        reportparams(stdout, ifile, c);
-        if(moments) reportmoments(stdout, s);
-        if(composite) reportcomposites(stdout, c, nonames);
-        if(freqs) reportfreqs(stdout, s);
-        if(quantiles) reportquantiles(stdout, s);
-        if(summaries) reportquantilesummaries(stdout, s);
-        if(histograms) reporthistos(stdout, c, s);
-        if(scores) reportscores(stdout, c, nonames);
-        if(tabsep) reporttabs(stdout, c, nonames);
+    fprintf(stderr, "Calculating statistics...\n");
+    s = statistics(c);
+    if(s == NULL) fatal("There is no data from which to generate reports.");
+    normalize(c);
+    composites(c);
+    sortrosters(c, comparename);
+    checkfordups(c->roster);
+    if(collate) {
+            fprintf(stderr, "Dumping collated data...\n");
+            writecourse(stdout, c);
+            exit(errors ? EXIT_FAILURE : EXIT_SUCCESS);
+    }
+    sortrosters(c, compare);
 
-        fprintf(stderr, "\nProcessing complete.\n");
-        printf("%d warning%s issued.\n", warnings+errors,
-               warnings+errors == 1? " was": "s were");
-        exit(errors ? EXIT_FAILURE : EXIT_SUCCESS);
+    fprintf(stderr, "Producing reports...\n");
+    reportparams(stdout, ifile, c);
+    if(moments) reportmoments(stdout, s);
+    if(composite) reportcomposites(stdout, c, nonames);
+
+    if(freqs) reportfreqs(stdout, s);
+    if(quantiles) reportquantiles(stdout, s);
+    if(summaries) reportquantilesummaries(stdout, s);
+    if(histograms) reporthistos(stdout, c, s);
+    if(scores) reportscores(stdout, c, nonames);
+    // if(tabsep) reporttabs(stdout, c, nonames);
+    if(tabsep) reporttabs(stdout, c);
+
+    fprintf(stderr, "\nProcessing complete.\n");
+    printf("%d warning%s issued.\n", warnings+errors,
+           warnings+errors == 1? " was": "s were");
+    exit(errors ? EXIT_FAILURE : EXIT_SUCCESS);
+
 }
 
 void usage(name)
 char *name;
 {
-        struct option_info *opt;
+    struct option_info *opt;
 
-        fprintf(stderr, "Usage: %s [options] <data file>\n", name);
-        fprintf(stderr, "Valid options are:\n");
-        for(unsigned int i = 0; i < 13; i++) {
-                opt = &option_table[i];
-                char optchr[5] = {' ', ' ', ' ', ' ', '\0'};
-                if(opt->chr)
-                  sprintf(optchr, "-%c, ", opt->chr);
-                char arg[32];
-                if(opt->has_arg)
-                    sprintf(arg, " <%.10s>", opt->argname);
-                else
-                    sprintf(arg, "%.13s", "");
-                fprintf(stderr, "\t%s--%-10s%-13s\t%s\n",
-                            optchr, opt->name, arg, opt->descr);
-                opt++;
-        }
-        exit(EXIT_FAILURE);
+    fprintf(stderr, "Usage: %s [options] <data file>\n", name);
+    fprintf(stderr, "Valid options are:\n");
+    for(unsigned int i = 0; i < 13; i++) {
+            opt = &option_table[i];
+            char optchr[5] = {' ', ' ', ' ', ' ', '\0'};
+            if(opt->chr)
+              sprintf(optchr, "-%c, ", opt->chr);
+            char arg[32];
+            if(opt->has_arg)
+                sprintf(arg, " <%.10s>", opt->argname);
+            else
+                sprintf(arg, "%.13s", "");
+            fprintf(stderr, "\t%s--%-10s%-13s\t%s\n",
+                        optchr, opt->name, arg, opt->descr);
+            opt++;
+    }
+    exit(EXIT_FAILURE);
 }

@@ -10,6 +10,7 @@
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
+#include "error.h"
 
 char *memerr = "Unable to allocate memory.";
 
@@ -77,7 +78,7 @@ int size;
         if((s = (char *)malloc(size)) == NULL)
                 fatal(memerr);
         cp = s;
-        while(size-- > 0) *cp++ = *tp++;
+        while(size-- > 0) *(cp++) = *(tp++);
         return(s);
 }
 

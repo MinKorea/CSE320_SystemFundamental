@@ -5,11 +5,13 @@
 
 #include<stddef.h>
 #include<stdio.h>
+#include<string.h>
 #include "global.h"
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
 #include "normal.h"
+#include "error.h"
 
 /*
  * Normalize scores:
@@ -20,9 +22,8 @@
  *              options set for that score and for the assignment.
  */
 
-void normalize(c, s)
+void normalize(c)
 Course *c;
-Stats *s;
 {
         Student *stp;
         Score *rscp, *nscp;
@@ -107,6 +108,7 @@ Sectionstats *ssp;
                          }
                         return(linear(s, ssp->mean, ssp->stddev, a->mean, a->stddev));
                 }
+                break;
         case SCALE:
                 if(a->max < EPSILON) {
                   warning("Declared maximum score of %s too small for normalization.",
@@ -149,6 +151,7 @@ Sectionstats *ssp;
                         return((float)fp->numless*100.0/n);
                 }
         }
+        return (s);
 }
 
 /*

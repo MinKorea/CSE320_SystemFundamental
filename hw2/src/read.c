@@ -6,15 +6,22 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "global.h"
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
 #include "read.h"
+#include "error.h"
 
 /*
  * Input file stack
  */
+Course *readcourse();
+int checktoken(char *key);
+int istoken();
+int tokensize();
+
 
 Ifile *ifile;
 
@@ -608,7 +615,7 @@ void previousfile()
         fprintf(stderr, " ]");
 }
 
-void pushfile(e)
+void pushfile()
 {
         Ifile *nfile;
         char *n;
@@ -625,10 +632,12 @@ void pushfile(e)
         nfile = newifile();
         nfile->name = n;
         nfile->line = 1;
+        nfile->prev = ifile;
         if((nfile->fd = fopen(n, "r")) == NULL)
                 fatal("(%s:%d) Can't open data file %s\n", ifile->name, ifile->line, n);
         ifile = nfile;
         fprintf(stderr, " [ %s", n);
         gobbleblanklines();
+        free(n);
 }
 
