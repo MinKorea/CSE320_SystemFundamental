@@ -72,18 +72,27 @@ static struct option_info {
 };
 
 static char short_options[14] = "";
-static struct option long_options[14];
+static struct option long_options[15];
 
 char colon = ':';
 
 static void init_options() {
-    for(unsigned int i = 0; i < 14; i++) {
+    for(unsigned int i = 0; i < 15; i++) {
+        struct option *op = &long_options[i];
+        if(i == 14)
+        {
+            op->name = NULL;
+            op->has_arg = 0;
+            op->flag = NULL;
+            op->val = 0;
+            break;
+        }
+
         struct option_info *oip = &option_table[i];
         if(oip->val != i) {
             fprintf(stderr, "Option initialization error\n");
             abort();
         }
-        struct option *op = &long_options[i];
         op->name = oip->name;
         op->has_arg = oip->has_arg;
         op->flag = NULL;
@@ -100,6 +109,7 @@ static void init_options() {
             strcat(short_options, c);
         }
     }
+
     // printf("short_options: %s\n", short_options);
 }
 
