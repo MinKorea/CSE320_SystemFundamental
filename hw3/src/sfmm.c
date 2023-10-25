@@ -78,6 +78,7 @@ void *sf_malloc(size_t size) {
     {
         if(sf_mem_grow() == NULL)
         {
+            printf("HI\n");
             sf_errno = ENOMEM;
             return NULL;
         }
@@ -117,6 +118,8 @@ void *sf_malloc(size_t size) {
     else if(block_size % 16 == 0)    block_size = size + 16;
     else                             block_size = 16 * (block_size / 16) + 16;
 
+    printf("block_size: %ld\n", block_size);
+
     for(int i = 0; i < NUM_FREE_LISTS - 1; i++)
     {
         if(sf_free_list_heads[i].body.links.prev == NULL && sf_free_list_heads[i].body.links.next == NULL)  continue;
@@ -129,11 +132,22 @@ void *sf_malloc(size_t size) {
 
             sf_block* alloc_f_block = freed_check->body.links.next;
             size_t free_size = (alloc_f_block->header & block_size_calculater);
-
+            printf("free_size: %ld\n", free_size);
             if(free_size == block_size)
             {
                 int prv_alloc = (alloc_f_block->header & 0b100);
+                prv_alloc = prv_alloc >> 2;
                 alloc_f_block->header = make_mem_row(payload, block_size, 1, prv_alloc);
+
+                sf_block* alloc_f_block_next = (sf_block *)((void *)alloc_f_block + block_size);
+                alloc_f_block_next->header = alloc_f_block_next->header | 0x4;
+                alloc_f_block_next->prev_footer = alloc_f_block->header;
+
+                alloc_f_block->body.links.prev->body.links.next = alloc_f_block->body.links.next;
+                alloc_f_block->body.links.next->body.links.prev = alloc_f_block->body.links.prev;
+
+                alloc_f_block->body.links.prev = NULL;
+                alloc_f_block->body.links.next = NULL;
 
                 return alloc_f_block->body.payload;
             }
@@ -145,6 +159,11 @@ void *sf_malloc(size_t size) {
                 if((free_size - block_size) < 32)
                 {
                     alloc_f_block->header = make_mem_row(payload, free_size, 1, prv_alloc);
+                    
+                    sf_block* alloc_f_block_next = (sf_block *)((void *)alloc_f_block + free_size);
+                    alloc_f_block_next->header = alloc_f_block_next->header | 0x4;
+                    alloc_f_block_next->prev_footer = alloc_f_block->header;
+
                     alloc_f_block->body.links.prev->body.links.next = alloc_f_block->body.links.next;
                     alloc_f_block->body.links.next->body.links.prev = alloc_f_block->body.links.prev;
 
@@ -319,6 +338,8 @@ void sf_free(void *pp) {
     // printf("\n");
     // printf("block_size: %ld\n", free_block_size);
 
+    // printf("Before pointer Check\n");
+
     if(((size_t)free_block) % 16 != 0
         || free_block_size < 32
         || free_block_size % 16 != 0
@@ -327,6 +348,8 @@ void sf_free(void *pp) {
     {
         abort();
     }
+
+    // printf("After pointer Check\n");
 
     // printf("free_block_prev_header_alloc: %lx\n", (free_block_prev->header & 0b1000));
     // printf("free_block_next_header_alloc: %lx\n", (free_block_next->header & 0b1000));
@@ -456,7 +479,7 @@ void *sf_realloc(void *pp, size_t rsize) {
         memcpy(realloc_block->body.payload, pp, alloc_block_payload);
         sf_free(pp);
 
-        sf_show_heap();
+        // sf_show_heap();
 
         return realloc_block->body.payload;
     }
@@ -507,7 +530,7 @@ void *sf_realloc(void *pp, size_t rsize) {
                 sf_free_list_heads[idx].body.links.next = left_free_block;
             }
 
-            sf_show_heap();
+            // sf_show_heap();
             return alloc_block->body.payload;
         }
         else
@@ -517,7 +540,7 @@ void *sf_realloc(void *pp, size_t rsize) {
             alloc_block->header = make_mem_row(rsize, alloc_block_size, 1, prv_alloc);
             alloc_block_next->prev_footer = alloc_block->header;
 
-            sf_show_heap();
+            // sf_show_heap();
             return alloc_block->body.payload;
         }
     }
@@ -529,7 +552,7 @@ void *sf_realloc(void *pp, size_t rsize) {
 
 double sf_fragmentation() {
     // To be implemented.
-    
+
 
 
     abort();
