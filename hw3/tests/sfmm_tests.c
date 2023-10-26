@@ -195,5 +195,65 @@ Test(sfmm_basecode_suite, realloc_smaller_block_free_block, .timeout = TEST_TIME
 //DO NOT DELETE THESE COMMENTS
 //############################################
 
-//Test(sfmm_student_suite, student_test_1, .timeout = TEST_TIMEOUT) {
-//}
+void assert_fragmentation(double frag) {
+	double result_by_code = sf_fragmentation();
+	cr_assert_eq(result_by_code, frag, "Wrong fragmentation value (exp=%f, found=%f)",
+		     frag, result_by_code);
+}
+
+void assert_utilization(double util) {
+	double result_by_code = sf_utilization();
+	cr_assert_eq(result_by_code, util, "Wrong utilization value (exp=%f, found=%f)",
+		     util, result_by_code);
+
+}
+
+Test(sfmm_student_suite, fragmentation_test, .timeout = TEST_TIMEOUT) {
+	double *x = sf_malloc(sizeof(double));
+
+	*x = 10.0;
+	assert_fragmentation(0.25);
+
+}
+
+Test(sfmm_student_suite, utilization_test, .timeout = TEST_TIMEOUT) {
+	void *x = sf_malloc(2048);
+	sf_free(x);
+
+	assert_utilization(0.5);
+
+}
+
+Test(sfmm_student_suite, multiple_blocks_fragmentation, .timeout = TEST_TIMEOUT) {
+
+	void *x = sf_malloc(8);
+	void *y = sf_malloc(8);
+	int *z = sf_realloc(x, 16);
+	int *w = sf_realloc(y, 16);
+
+	*z = 1;
+	*w = 2;
+
+	assert_fragmentation(0.5);
+
+
+}
+
+Test(sfmm_student_suite, multiple_blocks_utilization, .timeout = TEST_TIMEOUT) {
+	void *x = sf_malloc(2048);
+	void *y = sf_malloc(2048);
+	int *z = sf_realloc(x, 1024);
+	int *w = sf_realloc(y, 9216);
+	sf_free(z);
+	sf_free(w);
+
+	assert_utilization(0.75);
+
+}
+
+Test(sfmm_student_suite, realloc_NULL, .timeout = TEST_TIMEOUT) {
+	int *x = sf_realloc(NULL, sizeof(int));
+
+	cr_assert_null(x, "x is not NULL!");
+	cr_assert(sf_errno == EINVAL, "sf_errno is not ENIVAL!");
+}

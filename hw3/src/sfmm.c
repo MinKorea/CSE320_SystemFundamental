@@ -9,6 +9,10 @@
 #include "debug.h"
 #include "sfmm.h"
 
+double total_payload = 0;
+double total_block = 0;
+double max_aggr_payload = 0;
+
 size_t make_mem_row(size_t payload, size_t block_size, size_t alloc, size_t prv_alloc)
 {
     size_t mem_row = 0x0;
@@ -118,7 +122,7 @@ void *sf_malloc(size_t size) {
     else if(block_size % 16 == 0)    block_size = size + 16;
     else                             block_size = 16 * (block_size / 16) + 16;
 
-    printf("block_size: %ld\n", block_size);
+    // printf("block_size: %ld\n", block_size);
 
     for(int i = 0; i < NUM_FREE_LISTS - 1; i++)
     {
@@ -132,7 +136,7 @@ void *sf_malloc(size_t size) {
 
             sf_block* alloc_f_block = freed_check->body.links.next;
             size_t free_size = (alloc_f_block->header & block_size_calculater);
-            printf("free_size: %ld\n", free_size);
+            // printf("free_size: %ld\n", free_size);
             if(free_size == block_size)
             {
                 int prv_alloc = (alloc_f_block->header & 0b100);
@@ -148,6 +152,11 @@ void *sf_malloc(size_t size) {
 
                 alloc_f_block->body.links.prev = NULL;
                 alloc_f_block->body.links.next = NULL;
+
+                total_payload += payload;
+                total_block += block_size;
+
+                if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
 
                 return alloc_f_block->body.payload;
             }
@@ -169,6 +178,10 @@ void *sf_malloc(size_t size) {
 
                     alloc_f_block->body.links.prev = NULL;
                     alloc_f_block->body.links.next = NULL;
+
+                    total_payload += payload;
+                    total_block += free_size;
+                    if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
                 }
                 else
                 {
@@ -224,10 +237,10 @@ void *sf_malloc(size_t size) {
                         sf_free_list_heads[idx].body.links.next = left_free_block;
                     }
 
-                    // freed_check->body.links.next = left_free_block;
-                    // left_free_block->body.links.prev = freed_check;
-                    // freed_check->body.links.next = alloc_f_block->body.links.next;
-                    // alloc_f_block->body.links.next->body.links.prev = left_free_block;
+                    total_payload += payload;
+                    total_block += block_size;
+                    if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
+
                 }
 
                 return alloc_f_block->body.payload;
@@ -265,6 +278,10 @@ void *sf_malloc(size_t size) {
     alloc_block->header = make_mem_row(payload, block_size, 1, prv_alloc);
     alloc_block->prev_footer = wilderness->prev_footer;
     // wilderness = (sf_block *) ((void *)alloc_block + block_size);
+
+    total_payload += payload;
+    total_block += block_size;
+    if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
 
     wilderness_size = wilderness_size - block_size;
 
@@ -316,12 +333,13 @@ void sf_free(void *pp) {
     // To be implemented.
     if(pp == NULL)  abort();
 
+    size_t payload_calculater = (make_mem_row(0xffffffff, 0, 0, 0));
     size_t block_size_calculater = (make_mem_row(0,0xfffffff, 0, 0) << 4);
 
     sf_block* free_block = (sf_block *) (pp - 16);
+    size_t free_block_payload = (free_block->header & (payload_calculater)) >> 32;
     size_t free_block_size = (free_block->header & (block_size_calculater));
     size_t free_block_prev_size = free_block->prev_footer & (block_size_calculater);
-    
     sf_block* free_block_prev = (sf_block *)((void *) free_block - free_block_prev_size);
     sf_block* free_block_next = (sf_block *) ((void *)free_block + free_block_size);
     size_t free_block_next_size = (free_block_next->header & (block_size_calculater));
@@ -354,6 +372,9 @@ void sf_free(void *pp) {
     // printf("free_block_prev_header_alloc: %lx\n", (free_block_prev->header & 0b1000));
     // printf("free_block_next_header_alloc: %lx\n", (free_block_next->header & 0b1000));
 
+    total_payload -= free_block_payload;
+    total_block -= free_block_size;
+    // if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
 
     if(((free_block_prev->header & 0b1000) != 0) && ((free_block_next->header & 0b1000) != 0))
     {   // prev and next block are all allocated blocks
@@ -442,7 +463,11 @@ void sf_free(void *pp) {
 
 void *sf_realloc(void *pp, size_t rsize) {
     // To be implemented.
-    if(pp == NULL)  abort();
+    if(pp == NULL)
+    {
+        sf_errno = EINVAL;
+        return NULL;
+    }
 
     size_t payload_calculater = (make_mem_row(0xffffffff, 0, 0, 0));
     size_t block_size_calculater = (make_mem_row(0,0xfffffff, 0, 0) << 4);
@@ -455,6 +480,8 @@ void *sf_realloc(void *pp, size_t rsize) {
     sf_block* alloc_block_next = (sf_block *) ((void *)alloc_block + alloc_block_size);
     // size_t alloc_block_next_size = (alloc_block_next->header & (block_size_calculater));
 
+
+
     if(((size_t)alloc_block) % 16 != 0
         || alloc_block_size < 32
         || alloc_block_size % 16 != 0
@@ -462,10 +489,17 @@ void *sf_realloc(void *pp, size_t rsize) {
         || (((alloc_block->prev_footer & 0b1000) != 0) && ((alloc_block->header & 0b100) == 0)))
     {
         sf_errno = EINVAL;
-        abort();
+        return NULL;
     }
-    printf("alloc_block_payload: %ld\n", alloc_block_payload);
-    printf("rsize: %ld\n", rsize);
+    // printf("alloc_block_payload: %ld\n", alloc_block_payload);
+    // printf("rsize: %ld\n", rsize);
+
+    if(rsize == 0)
+    {
+        sf_free(alloc_block);
+        sf_errno = EINVAL;
+        return NULL;
+    }
 
     size_t realloc_block_size = rsize + 16;
     if(realloc_block_size < 32) realloc_block_size = 32;
@@ -479,8 +513,6 @@ void *sf_realloc(void *pp, size_t rsize) {
         memcpy(realloc_block->body.payload, pp, alloc_block_payload);
         sf_free(pp);
 
-        // sf_show_heap();
-
         return realloc_block->body.payload;
     }
     else
@@ -493,9 +525,15 @@ void *sf_realloc(void *pp, size_t rsize) {
             alloc_block->header = make_mem_row(rsize, realloc_block_size, 1, prv_alloc);
 
             sf_block* left_free_block = (sf_block *)((void *)alloc_block + realloc_block_size);
-            // left_free_block->header = make_mem_row(0, free_block_size, 0, 1);
+            left_free_block->header = make_mem_row(0, free_block_size, 0, 1);
             left_free_block->prev_footer = alloc_block->header;
-            // alloc_block_next->prev_footer = left_free_block->header;
+            alloc_block_next->prev_footer = left_free_block->header;
+
+            total_payload += rsize;
+            total_block += realloc_block_size;
+            total_payload -= alloc_block_payload;
+            total_block -= alloc_block_size;
+            if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
 
             if((alloc_block_next->header & 0b1000) == 0)
             {
@@ -540,12 +578,15 @@ void *sf_realloc(void *pp, size_t rsize) {
             alloc_block->header = make_mem_row(rsize, alloc_block_size, 1, prv_alloc);
             alloc_block_next->prev_footer = alloc_block->header;
 
+            
+            total_payload += rsize;
+            total_payload -= alloc_block_payload;
+            if(max_aggr_payload < total_payload)    max_aggr_payload = total_payload;
+            
             // sf_show_heap();
             return alloc_block->body.payload;
         }
     }
-
-
 
     return NULL;
 }
@@ -553,12 +594,21 @@ void *sf_realloc(void *pp, size_t rsize) {
 double sf_fragmentation() {
     // To be implemented.
 
+    // printf("total payload: %f\n", total_payload);
+    // printf("total block:        %f\n", total_block);
 
-
-    abort();
+    if(total_block == 0)    return 0.0;
+    else return (total_payload / total_block);
 }
 
 double sf_utilization() {
     // To be implemented.
-    abort();
+
+    size_t heap_size = sf_mem_end() - sf_mem_start();
+
+    // printf("max_aggr_payload: %f\n", max_aggr_payload);
+    // printf("heap size:        %ld\n", heap_size);
+
+    if(heap_size == 0)  return 0.0;
+    else return (double)(max_aggr_payload / heap_size);
 }
