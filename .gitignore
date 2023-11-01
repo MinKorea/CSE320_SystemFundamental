@@ -1,2 +1,10 @@
 bin/
 build/
+<<<<<<< HEAD
+=======
+test_output/
+*~
+*.out
+*.bak
+*.o
+>>>>>>> HW4_CODE/master
