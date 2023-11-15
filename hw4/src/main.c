@@ -78,13 +78,12 @@ int main(int argc, char *argv[]) {
                 errno = 0;
                 fflush(stdin);
                 clearerr(stdin);
-                return 0;
-                // continue;
+                continue;
             }
-            else 
+            else
             {
                 clearerr(stdin);
-                return 0; 
+                return 0;
             }
         }
 
@@ -144,6 +143,19 @@ int main(int argc, char *argv[]) {
         {
             command_quit(deet_argc, deet_argv, lineptr, lineptr_cpy, lineptr_cpy_cpy);
             return 0;
+        }
+        else if (strcmp(deet_argv[0], "show") == 0 && deet_argc <= 2)
+        {
+            if(deet_argc == 2)
+            {
+                int arg_id = atoi(deet_argv[1]);
+                command_show2(arg_id);
+
+            }
+            else
+            {
+                command_show1();
+            }
         }
         else if (strcmp(deet_argv[0], "run") == 0 && deet_argc >= 2)
         {
