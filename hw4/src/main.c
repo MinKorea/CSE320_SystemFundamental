@@ -69,6 +69,7 @@ int main(int argc, char *argv[]) {
         }
 
         input_length = getline(&lineptr, &n, stdin);
+        // fflush(stdin);
         if(input_length < 0)
         {
             printf("INPUT LENGTH ERROR\n");
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
 
         log_input(lineptr);
 
-        if(input_length == 1)  continue;
+        // if(input_length == 1)  continue;
 
         input_length++;
 
@@ -118,8 +119,17 @@ int main(int argc, char *argv[]) {
             idx++;
         }
 
+        if(idx == 0)
+        {
+            free(lineptr_cpy);
+            free(lineptr_cpy_cpy);
+            free(deet_argv);
+            continue;
+        }
+
         deet_argc = idx;
         deet_argv[deet_argc] = NULL;
+
 
         if (strcmp(deet_argv[0], "help") == 0)
         {
