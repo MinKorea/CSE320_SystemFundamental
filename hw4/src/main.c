@@ -79,9 +79,13 @@ int main(int argc, char *argv[]) {
                 fflush(stdin);
                 clearerr(stdin);
                 return 0;
-                continue;
+                // continue;
             }
-            else clearerr(stdin);
+            else 
+            {
+                clearerr(stdin);
+                return 0; 
+            }
         }
 
         log_input(lineptr);
