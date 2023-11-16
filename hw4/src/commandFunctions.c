@@ -14,6 +14,7 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 {
 	sigset_t set;
     sigemptyset(&set);
+    // sigaddset(&set, SIGINT);
     sigaddset(&set, SIGCHLD);
 
 	if(sig == SIGINT)
@@ -23,7 +24,7 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 		for(int i = 0; i < num_pids; i++)
 		{
 			sigprocmask(SIG_SETMASK, &set, NULL);
-			if(pids[i] != 0)
+			if(pstates[i] != PSTATE_DEAD)
 			{
 				command_kill(i);
 				sigemptyset(&set);
@@ -430,7 +431,7 @@ void command_cont(int d_id)
 	fprintf(stdout, "\n");
 	fflush(stdout);
 
-	// ptrace(PTRACE_CONT, pids[deet_id], 1, 0);
+	ptrace(PTRACE_CONT, pids[deet_id], 1, 0);
 }
 
 void command_kill(int d_id)

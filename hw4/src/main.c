@@ -72,13 +72,11 @@ int main(int argc, char *argv[]) {
         // fflush(stdin);
         if(input_length < 0)
         {
-            printf("INPUT LENGTH ERROR\n");
             if(errno == EINTR)
             {
                 errno = 0;
                 fflush(stdin);
                 clearerr(stdin);
-                // return 0;
                 continue;
             }
             else
@@ -200,6 +198,4 @@ int main(int argc, char *argv[]) {
     }
 
     return 0;
-
-    // abort();
 }
