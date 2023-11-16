@@ -78,8 +78,8 @@ int main(int argc, char *argv[]) {
                 errno = 0;
                 fflush(stdin);
                 clearerr(stdin);
-                return 0;
-                // continue;
+                // return 0;
+                continue;
             }
             else
             {

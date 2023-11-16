@@ -237,7 +237,7 @@ void command_show2(int d_id)
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
-			else    		     			 fprintf(stdout, "%s", pids_argv[d_id][j]);
+			else    		     			 	 fprintf(stdout, "%s", pids_argv[d_id][j]);
 		}
     	fprintf(stdout, "\n");
 	}
@@ -303,7 +303,6 @@ void command_run(pid_t pid, int argc, char** argv)
 	{
 		// dup2(STDOUT_FILENO,STDERR_FILENO);
 		// dup2(STDERR_FILENO,STDOUT_FILENO);
-		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 
 		int i;
 		for(i = 0; i < num_pids; i++)
@@ -330,6 +329,7 @@ void command_run(pid_t pid, int argc, char** argv)
 		fflush(stdout);
 
 		dup2(STDERR_FILENO,STDOUT_FILENO);
+		ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 
 		if(execvp(argv[0], argv) == -1)
 		{
@@ -430,7 +430,7 @@ void command_cont(int d_id)
 	fprintf(stdout, "\n");
 	fflush(stdout);
 
-	ptrace(PTRACE_CONT, pids[deet_id], 1, 0);
+	// ptrace(PTRACE_CONT, pids[deet_id], 1, 0);
 }
 
 void command_kill(int d_id)
