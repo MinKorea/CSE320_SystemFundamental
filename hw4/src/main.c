@@ -151,7 +151,6 @@ int main(int argc, char *argv[]) {
             {
                 int arg_id = atoi(deet_argv[1]);
                 command_show2(arg_id);
-
             }
             else
             {
