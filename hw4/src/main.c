@@ -7,7 +7,6 @@
 #include "commandFunctions.h"
 
 int dt_argc;
-char** dt_argv;
 
 int main(int argc, char *argv[]) {
     // TO BE IMPLEMENTED
@@ -53,7 +52,7 @@ int main(int argc, char *argv[]) {
             int i = 1;
             for(i = 1; i < argc; i++)
             {
-                if(strcmp(argv[1], "-p") == 0)  break;
+                if(strcmp(argv[i], "-p") == 0)  break;
             }
 
             if(i == argc)
@@ -69,13 +68,12 @@ int main(int argc, char *argv[]) {
         }
 
         input_length = getline(&lineptr, &n, stdin);
-        // fflush(stdin);
         if(input_length < 0)
         {
+            fprintf(stdout, "GETLINE ERROR\n");
             if(errno == EINTR)
             {
                 errno = 0;
-                fflush(stdin);
                 clearerr(stdin);
                 continue;
             }
@@ -148,11 +146,21 @@ int main(int argc, char *argv[]) {
             if(deet_argc == 2)
             {
                 int arg_id = atoi(deet_argv[1]);
-                command_show2(arg_id);
+                if(command_show2(arg_id) == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
             }
             else
             {
-                command_show1();
+                if(command_show1() == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
             }
         }
         else if (strcmp(deet_argv[0], "run") == 0 && deet_argc >= 2)
@@ -161,7 +169,6 @@ int main(int argc, char *argv[]) {
             int d_argc = deet_argc - 1;
 
             deet_argc = d_argc;
-            dt_argv = d_args;
 
             pid_t pid = fork();
 
@@ -175,16 +182,46 @@ int main(int argc, char *argv[]) {
         else if (strcmp(deet_argv[0], "kill") == 0 && deet_argc == 2)
         {
             int arg_id = atoi(deet_argv[1]);
-            command_kill(arg_id);
+            if(command_kill(arg_id) == 1)
+            {
+                log_error(lineptr_cpy_cpy);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
         }
         else if (strcmp(deet_argv[0], "cont") == 0 && deet_argc == 2)
         {
             int arg_id = atoi(deet_argv[1]);
-            command_cont(arg_id);
+            if(command_cont(arg_id) == 1)
+            {
+                log_error(deet_argv[0]);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
+        }
+        else if (strcmp(deet_argv[0], "wait") == 0 && deet_argc <= 3)
+        {
+            int arg_id = atoi(deet_argv[1]);
+
+            if(deet_argc == 3)
+            {
+                command_wait2(arg_id, deet_argv[2]);
+
+            }
+            else if(deet_argc == 2)
+            {
+                command_wait1(arg_id);
+            }
+            else
+            {
+                log_error(deet_argv[0]);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
         }
         else
         {
-            log_error(lineptr_cpy_cpy);
+            log_error(deet_argv[0]);
             fprintf(stdout, "?\n");
             fflush(stdout);
         }

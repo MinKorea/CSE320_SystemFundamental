@@ -15,9 +15,12 @@
 void sig_handler(int sig, siginfo_t *sig_info, void* context);
 void command_help();
 void command_quit(int deet_argc, char** deet_argv, char* ptr1, char* ptr2, char* ptr3);
-void command_show1();
-void command_show2(int d_id);
+int command_show1();
+int command_show2(int d_id);
 void command_run(pid_t pid, int argc, char** argv);
-void command_cont(int d_id);
-void command_kill(int d_id);
+int command_cont(int d_id);
+int command_kill(int d_id);
+int command_wait1(int d_id);
+int command_wait2(int d_id, char* arg);
+
 
