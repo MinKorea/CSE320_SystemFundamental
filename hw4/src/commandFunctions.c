@@ -9,6 +9,7 @@ static char** d_argv;
 static int* pids_argc;
 static char*** pids_argv;
 static int* p_exit_status;
+static char* p_is_tracing;
 
 
 void sig_handler(int sig, siginfo_t *sig_info, void* context)
@@ -45,6 +46,7 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 
 		for(int i = 0; i < num_pids; i++)
 		{
+			if(p_exit_status[i] != -1)	continue;
 			if(pstates[i] != PSTATE_DEAD && pstates[i] != PSTATE_NONE)
 			{
 				sigaddset(&set, SIGCHLD);
@@ -80,17 +82,20 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 	    }
 	    else if(sig_info->si_code == CLD_STOPPED)
 	    {
-	    	log_state_change(sig_info->si_pid, PSTATE_RUNNING, PSTATE_STOPPED, sig_info->si_status);
+	    	// printf("STOPPED\n");
+	    	log_state_change(sig_info->si_pid, pstates[deet_id], PSTATE_STOPPED, sig_info->si_status);
 	    	pstates[deet_id] = PSTATE_STOPPED;
 	    	command_show2(deet_id);
 	    }
 	    else if(sig_info->si_code == CLD_CONTINUED)
 	    {
+	    	// printf("CONTINUED\n");
 	    	// pstates[deet_id] = PSTATE_RUNNING;
 	    	// log_state_change(sig_info->si_pid, pstate, new_state, sig_info->si_status);
 	    }
 	    else if(sig_info->si_code == CLD_TRAPPED)
 	    {
+	    	// printf("TRAPPED\n");
 	    	log_state_change(sig_info->si_pid, PSTATE_RUNNING, PSTATE_STOPPED, sig_info->si_status);
 	    	pstates[deet_id] = PSTATE_STOPPED;
 	    	command_show2(deet_id);
@@ -145,6 +150,7 @@ void command_quit(int deet_argc, char** deet_argv,
 
 	for(int i = 0; i < num_pids; i++)
 	{
+		if(p_exit_status[i] != -1)	continue;
 		if(pstates[i] != PSTATE_DEAD && pstates[i] != PSTATE_NONE)
 		{
 			sigaddset(&set, SIGCHLD);
@@ -176,7 +182,7 @@ int command_show1()
 	{
 		if(pstates[i] == PSTATE_DEAD)
 		{
-			fprintf(stdout, "%d\t%d\tT\tdead\t0x%x\t", i, pids[i], p_exit_status[i]);
+			fprintf(stdout, "%d\t%d\t%c\tdead\t0x%x\t", i, pids[i], p_is_tracing[i], p_exit_status[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -186,7 +192,7 @@ int command_show1()
 		}
 		else if(pstates[i] == PSTATE_RUNNING)
 		{
-			fprintf(stdout, "%d\t%d\tT\trunning\t\t", i, pids[i]);
+			fprintf(stdout, "%d\t%d\t%c\trunning\t\t", i, pids[i], p_is_tracing[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -196,7 +202,7 @@ int command_show1()
 		}
 		else if(pstates[i] == PSTATE_STOPPING)
 		{
-			fprintf(stdout, "%d\t%d\tT\tstopping\t\t", i, pids[i]);
+			fprintf(stdout, "%d\t%d\t%c\tstopping\t\t", i, pids[i], p_is_tracing[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -206,7 +212,7 @@ int command_show1()
 		}
 		else if(pstates[i] == PSTATE_STOPPED)
 		{
-			fprintf(stdout, "%d\t%d\tT\tstopped\t\t", i, pids[i]);
+			fprintf(stdout, "%d\t%d\t%c\tstopped\t\t", i, pids[i], p_is_tracing[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -216,7 +222,7 @@ int command_show1()
 		}
 		else if(pstates[i] == PSTATE_CONTINUING)
 		{
-			fprintf(stdout, "%d\t%d\tT\tcontinuing\t\t", i, pids[i]);
+			fprintf(stdout, "%d\t%d\t%c\tcontinuing\t\t", i, pids[i], p_is_tracing[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -226,7 +232,7 @@ int command_show1()
 		}
 		else if(pstates[i] == PSTATE_KILLED)
 		{
-			fprintf(stdout, "%d\t%d\tT\tkilled\t\t", i, pids[i]);
+			fprintf(stdout, "%d\t%d\t%c\tkilled\t\t", i, pids[i], p_is_tracing[i]);
 	    	for(int j = 0; j < pids_argc[i]; j++)
 			{
 				if(j < (pids_argc[i] - 1)) 		 fprintf(stdout, "%s ", pids_argv[i][j]);
@@ -243,7 +249,7 @@ int command_show2(int d_id)
 {
 	if(pstates[d_id] == PSTATE_DEAD)
 	{
-		fprintf(stdout, "%d\t%d\tT\tdead\t0x%x\t", d_id, pids[d_id], p_exit_status[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\tdead\t0x%x\t", d_id, pids[d_id], p_is_tracing[d_id], p_exit_status[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -255,7 +261,7 @@ int command_show2(int d_id)
 	}
 	else if(pstates[d_id] == PSTATE_RUNNING)
 	{
-		fprintf(stdout, "%d\t%d\tT\trunning\t\t", d_id, pids[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\trunning\t\t", d_id, pids[d_id], p_is_tracing[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -267,7 +273,7 @@ int command_show2(int d_id)
 	}
 	else if(pstates[d_id] == PSTATE_STOPPING)
 	{
-		fprintf(stdout, "%d\t%d\tT\tstopping\t\t", d_id, pids[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\tstopping\t\t", d_id, pids[d_id], p_is_tracing[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -279,7 +285,7 @@ int command_show2(int d_id)
 	}
 	else if(pstates[d_id] == PSTATE_STOPPED)
 	{
-		fprintf(stdout, "%d\t%d\tT\tstopped\t\t", d_id, pids[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\tstopped\t\t", d_id, pids[d_id], p_is_tracing[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -291,7 +297,7 @@ int command_show2(int d_id)
 	}
 	else if(pstates[d_id] == PSTATE_CONTINUING)
 	{
-		fprintf(stdout, "%d\t%d\tT\tcontinuing\t\t", d_id, pids[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\tcontinuing\t\t", d_id, pids[d_id], p_is_tracing[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -303,7 +309,7 @@ int command_show2(int d_id)
 	}
 	else if(pstates[d_id] == PSTATE_KILLED)
 	{
-		fprintf(stdout, "%d\t%d\tT\tkilled\t\t", d_id, pids[d_id]);
+		fprintf(stdout, "%d\t%d\t%c\tkilled\t\t", d_id, pids[d_id], p_is_tracing[d_id]);
     	for(int j = 0; j < pids_argc[d_id]; j++)
 		{
 			if(j < (pids_argc[d_id] - 1)) 		 fprintf(stdout, "%s ", pids_argv[d_id][j]);
@@ -397,6 +403,7 @@ void command_run(pid_t pid, int argc, char** argv)
 				}
 				deet_id = i;
 				p_exit_status[i] = -1;
+				p_is_tracing[i] = 'T';
 				// fprintf(stdout, "ARGS: %s\n", pids_argv[i][0]);
 				break;
 			}
@@ -409,6 +416,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pstates = malloc(sizeof(PSTATE) * num_pids);
 			pids_argc = malloc(sizeof(int) * num_pids);
 			p_exit_status = malloc(sizeof(int) * num_pids);
+			p_is_tracing = malloc(sizeof(char) * num_pids);
 
 			pids_argv = malloc(sizeof(char**) * (num_pids + 1));
 			pids_argv[0] = malloc(sizeof(char*) * (d_argc + 1));
@@ -422,6 +430,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pids[0] = pid;
 			deet_id = 0;
 			p_exit_status[0] = -1;
+			p_is_tracing[0] = 'T';
 			// fprintf(stdout, "ARGS: %s\n", pids_argv[0][0]);
 		}
 		else if(i == num_pids)
@@ -431,6 +440,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pstates = realloc(pstates, sizeof(PSTATE) * num_pids);
 			pids_argc = realloc(pids_argc, sizeof(int) * num_pids);
 			p_exit_status = realloc(p_exit_status, sizeof(int) * num_pids);
+			p_is_tracing = realloc(p_is_tracing, sizeof(char) * num_pids);
 
 			pids_argv = realloc(pids_argv, sizeof(char*) * (num_pids + 1));
 			pids_argv[num_pids-1] = malloc(sizeof(char*) * (d_argc + 1));
@@ -444,6 +454,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pids[num_pids - 1] = pid;
 			deet_id = num_pids - 1;
 			p_exit_status[num_pids - 1] = -1;
+			p_is_tracing[num_pids - 1] = 'T';
 		}
 
 		// for(int j = 0; j < num_pids; j++)
@@ -454,30 +465,87 @@ void command_run(pid_t pid, int argc, char** argv)
 	}
 }
 
+int command_stop(int d_id)
+{
+	int status = 0;
+	deet_id = d_id;
+
+	if(pstates[deet_id] != PSTATE_RUNNING)	return 1;
+
+	log_state_change(pids[deet_id], pstates[deet_id], PSTATE_STOPPING, status);
+	pstates[deet_id] = PSTATE_STOPPING;
+	command_show2(deet_id);
+
+	kill(pids[deet_id], SIGSTOP);
+
+	return 0;
+}
+
 int command_cont(int d_id)
 {
-	if((d_id > num_pids) || pstates[d_id] == PSTATE_DEAD || pstates[d_id] == PSTATE_NONE)
-		return 1;
+	if(p_is_tracing[d_id] == 'T')
+	{
+		if((d_id > num_pids || pstates[d_id] == PSTATE_DEAD || pstates[d_id] == PSTATE_NONE))	return 1;
 
+		int status = 0;
+		deet_id = d_id;
+
+		if((pstates[deet_id] != PSTATE_RUNNING) && (pstates[deet_id] != PSTATE_CONTINUING))
+		{
+			log_state_change(pids[deet_id], pstates[deet_id], PSTATE_RUNNING, status);
+			pstates[deet_id] = PSTATE_RUNNING;
+			command_show2(deet_id);
+		}
+
+		if(ptrace(PTRACE_CONT, pids[deet_id], 1, 0) == -1)
+		{
+			fprintf(stdout, "ptrace: No such process\n");
+			log_error(pids_argv[deet_id][0]);
+			fprintf(stdout, "?\n");
+	        fflush(stdout);
+		}
+	}
+	else
+	{
+		int status = 0;
+		deet_id = d_id;
+		if(pstates[deet_id] != PSTATE_CONTINUING)
+		{
+			log_state_change(pids[deet_id], pstates[deet_id], PSTATE_CONTINUING, status);
+			pstates[deet_id] = PSTATE_CONTINUING;
+			command_show2(deet_id);
+		}
+
+		kill(pids[deet_id], SIGCONT);
+	}
+
+	return 0;
+}
+
+int command_release(int d_id)
+{
 	int status = 0;
-
 	deet_id = d_id;
+	if(p_is_tracing[deet_id] == 'U')	return 1;
+
+	
+
+	p_is_tracing[deet_id] = 'U';
 
 	if((pstates[deet_id] != PSTATE_RUNNING) && (pstates[deet_id] != PSTATE_CONTINUING))
 	{
 		log_state_change(pids[deet_id], pstates[deet_id], PSTATE_RUNNING, status);
 		pstates[deet_id] = PSTATE_RUNNING;
-
-		command_show2(deet_id);
+		
 	}
 
-	if(ptrace(PTRACE_CONT, pids[deet_id], 1, 0) == -1)
+	if(ptrace(PTRACE_DETACH, pids[deet_id], 0, 0) == -1)
 	{
 		fprintf(stdout, "ptrace: No such process\n");
-		log_error(pids_argv[deet_id][0]);
-		fprintf(stdout, "?\n");
-        fflush(stdout);
+        return 1;
 	}
+
+	command_show2(deet_id);
 
 	return 0;
 }

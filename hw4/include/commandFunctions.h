@@ -18,9 +18,13 @@ void command_quit(int deet_argc, char** deet_argv, char* ptr1, char* ptr2, char*
 int command_show1();
 int command_show2(int d_id);
 void command_run(pid_t pid, int argc, char** argv);
+int command_stop(int d_id);
 int command_cont(int d_id);
-int command_kill(int d_id);
+int command_release(int d_id);
 int command_wait1(int d_id);
 int command_wait2(int d_id, char* arg);
+int command_kill(int d_id);
+
+
 
 

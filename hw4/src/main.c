@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
         input_length = getline(&lineptr, &n, stdin);
         if(input_length < 0)
         {
-            fprintf(stdout, "GETLINE ERROR\n");
+            // fprintf(stdout, "GETLINE ERROR\n");
             if(errno == EINTR)
             {
                 errno = 0;
@@ -179,12 +179,32 @@ int main(int argc, char *argv[]) {
             // printf("PID: %d\n", getpid());
 
         }
+        else if (strcmp(deet_argv[0], "stop") == 0 && deet_argc == 2)
+        {
+            int arg_id = atoi(deet_argv[1]);
+            if(command_stop(arg_id) == 1)
+            {
+                log_error(deet_argv[0]);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
+        }
         else if (strcmp(deet_argv[0], "kill") == 0 && deet_argc == 2)
         {
             int arg_id = atoi(deet_argv[1]);
             if(command_kill(arg_id) == 1)
             {
-                log_error(lineptr_cpy_cpy);
+                log_error(deet_argv[0]);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
+        }
+        else if (strcmp(deet_argv[0], "release") == 0 && deet_argc == 2)
+        {
+            int arg_id = atoi(deet_argv[1]);
+            if(command_release(arg_id) == 1)
+            {
+                log_error(deet_argv[0]);
                 fprintf(stdout, "?\n");
                 fflush(stdout);
             }
