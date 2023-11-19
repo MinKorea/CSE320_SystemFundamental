@@ -24,7 +24,11 @@ int command_release(int d_id);
 int command_wait1(int d_id);
 int command_wait2(int d_id, char* arg);
 int command_kill(int d_id);
-
+int command_peek1(int d_id, size_t addr);
+int command_peek2(int d_id, size_t addr, int num);
+int command_poke(int d_id, size_t addr, long val);
+int command_bt1(int d_id);
+int command_bt2(int d_id, int num);
 
 
 

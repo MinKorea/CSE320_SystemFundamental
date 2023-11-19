@@ -239,6 +239,68 @@ int main(int argc, char *argv[]) {
                 fflush(stdout);
             }
         }
+        else if ((strcmp(deet_argv[0], "peek") == 0) && (deet_argc == 3  || deet_argc == 4))
+        {
+            if(deet_argc == 4)
+            {
+                int arg_id = atoi(deet_argv[1]);
+                size_t addr = strtol(deet_argv[2], NULL, 16);
+                int decimal_num = atoi(deet_argv[3]);
+                if(command_peek2(arg_id, addr, decimal_num) == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
+            }
+            else if(deet_argc == 3)
+            {
+                int arg_id = atoi(deet_argv[1]);
+                size_t addr = strtol(deet_argv[2], NULL, 16);
+                if(command_peek1(arg_id, addr) == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
+            }
+        }
+        else if (strcmp(deet_argv[0], "poke") == 0 && deet_argc == 4)
+        {
+            int arg_id = atoi(deet_argv[1]);
+            size_t addr = strtol(deet_argv[2], NULL, 16);
+            long value = strtol(deet_argv[3], NULL, 16);
+            if(command_poke(arg_id, addr, value) == 1)
+            {
+                log_error(deet_argv[0]);
+                fprintf(stdout, "?\n");
+                fflush(stdout);
+            }
+        }
+        else if ((strcmp(deet_argv[0], "bt") == 0) && (deet_argc == 2  || deet_argc == 3))
+        {
+            if(deet_argc == 3)
+            {
+                int arg_id = atoi(deet_argv[1]);
+                int decimal_num = atoi(deet_argv[2]);
+                if(command_bt2(arg_id, decimal_num) == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
+            }
+            else if(deet_argc == 2)
+            {
+                int arg_id = atoi(deet_argv[1]);
+                if(command_bt1(arg_id) == 1)
+                {
+                    log_error(deet_argv[0]);
+                    fprintf(stdout, "?\n");
+                    fflush(stdout);
+                }
+            }
+        }
         else
         {
             log_error(deet_argv[0]);
@@ -251,7 +313,6 @@ int main(int argc, char *argv[]) {
         free(lineptr_cpy_cpy);
         free(lineptr_cpy);
         free(lineptr);
-
     }
 
     return 0;

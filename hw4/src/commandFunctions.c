@@ -526,9 +526,8 @@ int command_release(int d_id)
 {
 	int status = 0;
 	deet_id = d_id;
-	if(p_is_tracing[deet_id] == 'U')	return 1;
 
-	
+	if(p_is_tracing[deet_id] == 'U')	return 1;
 
 	p_is_tracing[deet_id] = 'U';
 
@@ -536,7 +535,6 @@ int command_release(int d_id)
 	{
 		log_state_change(pids[deet_id], pstates[deet_id], PSTATE_RUNNING, status);
 		pstates[deet_id] = PSTATE_RUNNING;
-		
 	}
 
 	if(ptrace(PTRACE_DETACH, pids[deet_id], 0, 0) == -1)
@@ -626,8 +624,6 @@ int command_wait2(int d_id, char* arg)
 	return 0;
 }
 
-
-
 int command_kill(int d_id)
 {
 	int status = 0;
@@ -644,6 +640,118 @@ int command_kill(int d_id)
 
 	kill(pids[deet_id], SIGKILL);
 
+
+	return 0;
+}
+
+int command_peek1(int d_id, size_t addr)
+{
+	deet_id = d_id;
+
+	size_t data = ptrace(PTRACE_PEEKDATA,pids[deet_id], addr, NULL);
+
+	if(data == -1)	
+	{
+		if(errno == EFAULT || errno == EIO)	fprintf(stdout, "ptrace: Input/output error\n");
+		errno = 0;
+		return 1;
+	}
+
+	fprintf(stdout, "%016lx\t%016lx\n", addr, data);
+	return 0;
+}
+
+int command_peek2(int d_id, size_t addr, int num)
+{
+	deet_id = d_id;
+
+	size_t var_addr = addr;
+
+	for(int i = 0; i < num; i++)
+	{
+		size_t data = ptrace(PTRACE_PEEKDATA,pids[deet_id], var_addr, NULL);
+		if(data == -1)
+		{
+			if(errno == EFAULT || errno == EIO)	fprintf(stdout, "ptrace: Input/output error\n");
+			errno = 0;
+			return 1;
+		}
+
+		fprintf(stdout, "%016lx\t%016lx\n", var_addr, data);
+		var_addr += 0x8;
+	}
+
+	return 0;
+}
+
+int command_poke(int d_id, size_t addr, long val)
+{
+	deet_id = d_id;
+
+	if(ptrace(PTRACE_POKEDATA, pids[deet_id], addr, val) == -1)
+	{
+		if(errno == EFAULT || errno == EIO)	fprintf(stdout, "ptrace: Input/output error\n");
+		errno = 0;
+		return 1;
+	}
+
+	return 0;
+}
+
+int command_bt1(int d_id)
+{
+	deet_id = d_id;
+
+	struct user_regs_struct regs;
+	if(ptrace(PTRACE_GETREGS, pids[deet_id], NULL, &regs) == -1)
+	{
+		return 1;
+	}
+
+	unsigned long long rbp_addr = regs.rbp;
+	unsigned long long rbp_data;
+
+	for(int i = 0; i < 10; i++)
+	{
+		if((void *)rbp_addr == (void *)0x1)	break;
+		rbp_data = ptrace(PTRACE_PEEKDATA, pids[deet_id], (rbp_addr + 0x8), 0);
+		fprintf(stdout, "%016llx\t%016llx\n", rbp_addr, rbp_data);
+		rbp_addr = ptrace(PTRACE_PEEKDATA, pids[deet_id], rbp_addr, 0);
+		if(rbp_addr == -1)
+		{
+			if(errno == EFAULT || errno ==EIO)	fprintf(stdout, "ptrace: Input/output error\n");
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+int command_bt2(int d_id, int num)
+{
+	deet_id = d_id;
+
+	struct user_regs_struct regs;
+	if(ptrace(PTRACE_GETREGS, pids[deet_id], NULL, &regs) == -1)
+	{
+		return 1;
+	}
+
+	unsigned long long rbp_addr = regs.rbp;
+	unsigned long long rbp_data;
+
+	for(int i = 0; i < (num + 1); i++)
+	{
+		if((void *)rbp_addr == (void *)0x1)	break;
+		rbp_data = ptrace(PTRACE_PEEKDATA, pids[deet_id], (rbp_addr + 0x8), 0);
+		fprintf(stdout, "%016llx\t%016llx\n", rbp_addr, rbp_data);
+		rbp_addr = ptrace(PTRACE_PEEKDATA, pids[deet_id], rbp_addr, 0);
+		if(rbp_addr == -1)
+		{
+			if(errno == EFAULT || errno ==EIO)	fprintf(stdout, "ptrace: Input/output error\n");
+			return 1;
+		}
+	}
 
 	return 0;
 }
