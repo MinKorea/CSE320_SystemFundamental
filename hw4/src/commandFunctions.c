@@ -70,14 +70,16 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 		{
             log_state_change(sig_info->si_pid, pstates[deet_id], PSTATE_DEAD, sig_info->si_status);
             pstates[deet_id] = PSTATE_DEAD;
-            p_exit_status[deet_id] = sig_info->si_status;
+            if(p_exit_status[deet_id] < 0)
+            	p_exit_status[deet_id] = sig_info->si_status;
             command_show2(deet_id);
 	    }
 	    else if(sig_info->si_code == CLD_KILLED)
 	    {
 	    	log_state_change(sig_info->si_pid, pstates[deet_id], PSTATE_DEAD, sig_info->si_status);
 	    	pstates[deet_id] = PSTATE_DEAD;
-	    	p_exit_status[deet_id] = sig_info->si_status;
+	    	if(p_exit_status[deet_id] < 0)
+	    		p_exit_status[deet_id] = sig_info->si_status;
 	    	command_show2(deet_id);
 	    }
 	    else if(sig_info->si_code == CLD_STOPPED)
@@ -109,12 +111,12 @@ void sig_handler(int sig, siginfo_t *sig_info, void* context)
 	    }
 	    else
 	    {
-	    	fprintf(stdout, "PID: %d\n", getpid());
-	    	fprintf(stdout, "CLD_EXITED: %d\n", CLD_EXITED);
-	    	fprintf(stdout, "CLD_KILLED: %d\n", CLD_KILLED);
-	    	fprintf(stdout, "CLD_STOPPED: %d\n", CLD_STOPPED);
-	    	fprintf(stdout, "CLD_CONTINUED: %d\n", CLD_CONTINUED);
-	    	fprintf(stdout, "SI_CODE: %d\n", sig_info->si_code);
+	    	// fprintf(stdout, "PID: %d\n", getpid());
+	    	// fprintf(stdout, "CLD_EXITED: %d\n", CLD_EXITED);
+	    	// fprintf(stdout, "CLD_KILLED: %d\n", CLD_KILLED);
+	    	// fprintf(stdout, "CLD_STOPPED: %d\n", CLD_STOPPED);
+	    	// fprintf(stdout, "CLD_CONTINUED: %d\n", CLD_CONTINUED);
+	    	// fprintf(stdout, "SI_CODE: %d\n", sig_info->si_code);
 	    }
 	}
 }
@@ -382,12 +384,14 @@ void command_run(pid_t pid, int argc, char** argv)
 			// printf("ERRNO_BEFORE: %d\n", errno);
 			// errno = 0x100;
 			// printf("ERRNO_AFTER: %d\n", errno);
-			exit(errno);
+			exit(1);
 		}
 	}
 	else if(pid > 0)
 	{
 		waitpid(pid, &status, WUNTRACED);
+		// printf("STATUS: %04x\n", status);
+
 		int i;
 		for(i = 0; i < num_pids; i++)
 		{
@@ -403,6 +407,7 @@ void command_run(pid_t pid, int argc, char** argv)
 				}
 				deet_id = i;
 				p_exit_status[i] = -1;
+				if(status % 256 == 0)	p_exit_status[i] = status;
 				p_is_tracing[i] = 'T';
 				// fprintf(stdout, "ARGS: %s\n", pids_argv[i][0]);
 				break;
@@ -430,6 +435,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pids[0] = pid;
 			deet_id = 0;
 			p_exit_status[0] = -1;
+			if(status % 256 == 0)	p_exit_status[0] = status;
 			p_is_tracing[0] = 'T';
 			// fprintf(stdout, "ARGS: %s\n", pids_argv[0][0]);
 		}
@@ -454,6 +460,7 @@ void command_run(pid_t pid, int argc, char** argv)
 			pids[num_pids - 1] = pid;
 			deet_id = num_pids - 1;
 			p_exit_status[num_pids - 1] = -1;
+			if(status % 256 == 0)	p_exit_status[0] = status;
 			p_is_tracing[num_pids - 1] = 'T';
 		}
 
