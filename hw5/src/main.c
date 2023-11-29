@@ -2,15 +2,34 @@
 #include "client_registry.h"
 #include "transaction.h"
 #include "store.h"
+#include "server.h"
+#include "csapp.h"
+
+#include <signal.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/wait.h>
+#include <stdlib.h>
 
 static void terminate(int status);
-
 CLIENT_REGISTRY *client_registry;
+
+void sig_handler(int signo, siginfo_t *info, void* context);
 
 int main(int argc, char* argv[]){
     // Option processing should be performed here.
     // Option '-p <port>' is required in order to specify the port number
     // on which the server should listen.
+
+    char* port;
+
+    for(int i = 0; i < argc; i++)
+    {
+        if(strcmp(argv[i], "-p") == 0)
+        {
+            port = argv[i+1];
+        }
+    }
 
     // Perform required initializations of the client_registry,
     // transaction manager, and object store.
@@ -23,6 +42,27 @@ int main(int argc, char* argv[]){
     // run function xacto_client_service().  In addition, you should install
     // a SIGHUP handler, so that receipt of SIGHUP will perform a clean
     // shutdown of the server.
+
+    struct sigaction action;
+    action.sa_flags = SA_SIGINFO;
+    action.sa_sigaction = sig_handler;
+    sigaction(SIGHUP, &action, NULL);
+
+    int listenfd, *connfdp;
+    socklen_t clientlen;
+    struct sockaddr_storage clientaddr;
+    pthread_t tid;
+    listenfd = Open_listenfd(port);
+
+    while (1)
+    {
+        clientlen=sizeof(struct sockaddr_storage);
+        connfdp = Malloc(sizeof(int));
+        *connfdp = Accept(listenfd,
+        (SA *) &clientaddr, &clientlen);
+        Pthread_create(&tid, NULL, xacto_client_service, connfdp);
+    }
+
 
     fprintf(stderr, "You have to finish implementing main() "
 	    "before the Xacto server will function.\n");
@@ -37,7 +77,7 @@ void terminate(int status) {
     // Shutdown all client connections.
     // This will trigger the eventual termination of service threads.
     creg_shutdown_all(client_registry);
-    
+
     debug("Waiting for service threads to terminate...");
     creg_wait_for_empty(client_registry);
     debug("All service threads terminated.");
@@ -49,4 +89,12 @@ void terminate(int status) {
 
     debug("Xacto server terminating");
     exit(status);
+}
+
+void sig_handler(int signo, siginfo_t *info, void* context)
+{
+        if(signo == SIGHUP)
+        {
+            terminate(info->si_status);
+        }
 }
