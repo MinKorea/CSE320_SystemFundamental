@@ -193,8 +193,11 @@ void version_dispose(VERSION *vp)
 {
 	debug("Dispose of version %p", vp);
 	trans_unref(vp->creator, "VERSION DISPOSED - TRANSACTION UNREFERENCE");
-	blob_unref(vp->blob, "VERSION DISPOSED - BLOB UNREFERENCE");
-
+	if(vp->blob != NULL)
+	{
+		blob_unref(vp->blob, "VERSION DISPOSED - BLOB UNREFERENCE");
+	}
+	
 	// vp->prev->next = vp->next;
 	// vp->next->prev = vp->prev;
 
