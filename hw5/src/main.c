@@ -12,7 +12,9 @@
 #include <stdlib.h>
 
 static void terminate(int status);
+
 CLIENT_REGISTRY *client_registry;
+int listenfd, *connfdp;
 
 void sig_handler(int signo, siginfo_t *info, void* context);
 
@@ -44,11 +46,16 @@ int main(int argc, char* argv[]){
     // shutdown of the server.
 
     struct sigaction action;
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGHUP);
+
     action.sa_flags = SA_SIGINFO;
+    action.sa_mask = set;
     action.sa_sigaction = sig_handler;
     sigaction(SIGHUP, &action, NULL);
 
-    int listenfd, *connfdp;
+    
     socklen_t clientlen;
     struct sockaddr_storage clientaddr;
     pthread_t tid;
@@ -67,7 +74,7 @@ int main(int argc, char* argv[]){
     fprintf(stderr, "You have to finish implementing main() "
 	    "before the Xacto server will function.\n");
 
-    terminate(EXIT_FAILURE);
+    terminate(EXIT_SUCCESS);
 }
 
 /*
@@ -78,7 +85,7 @@ void terminate(int status) {
     // This will trigger the eventual termination of service threads.
     creg_shutdown_all(client_registry);
 
-    debug("Waiting for service threads to terminate...");
+    debug("Wait ing for service threads to terminate...");
     creg_wait_for_empty(client_registry);
     debug("All service threads terminated.");
 
@@ -88,6 +95,11 @@ void terminate(int status) {
     store_fini();
 
     debug("Xacto server terminating");
+
+    shutdown(listenfd, SHUT_RD);
+    close(listenfd);
+    free(connfdp);
+
     exit(status);
 }
 

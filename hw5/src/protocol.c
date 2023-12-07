@@ -12,13 +12,13 @@ int proto_send_packet(int fd, XACTO_PACKET *pkt, void *data)
 		return -1;
 
 	int payload_size = htonl(pkt->size);
-	
+
 	// pkt->serial = htonl(pkt->serial);
 	// pkt->size = htonl(pkt->size);
 	// pkt->timestamp_sec = htonl(pkt->timestamp_sec);
 	// pkt->timestamp_nsec = htonl(pkt->timestamp_nsec);
 
-	debug("PAYLOAD_SIZE: %d", payload_size);
+	// debug("PAYLOAD_SIZE: %d", payload_size);
 
 	if(payload_size > 0)
 	{
@@ -26,6 +26,7 @@ int proto_send_packet(int fd, XACTO_PACKET *pkt, void *data)
 		if(rio_writen(fd, data, payload_size) == -1)
 		{
 			debug("Returned -1");
+			Free(data);
 			return -1;
 		}
 	}
