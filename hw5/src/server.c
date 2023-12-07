@@ -15,17 +15,16 @@ void *xacto_client_service(void *arg)
 	creg_register(client_registry, connfd);
 
 	TRANSACTION *new_trans = trans_create();
+	XACTO_PACKET *pkt = malloc(sizeof(XACTO_PACKET));
 
 	while(1)
 	{
-		XACTO_PACKET *pkt = Malloc(sizeof(XACTO_PACKET));
-		void **datap = Malloc(sizeof(void *) * 3);
-
-		if(proto_recv_packet(connfd, pkt, datap) == 0)
+		if(proto_recv_packet(connfd, pkt, NULL) == 0)
 		{
+			void **datap = malloc(sizeof(void *) * 3);
+			void **buf_p = datap;
 
 			debug("PKT TYPE: %d", pkt->type);
-			// free(*datap);
 			datap++;
 
 			if(pkt->type == XACTO_PUT_PKT)
@@ -36,13 +35,14 @@ void *xacto_client_service(void *arg)
 				int key_size = ntohl(pkt->size);
 				debug("Received key, size %d", key_size);
 
+				void *temp = *datap;
+
 				char *cli_key_str = (char *)(*datap);
-				// free(*datap);
 				datap++;
 
 				// debug("Key: %s", cli_key_str);
 
-				proto_recv_packet(connfd,pkt, datap);
+				proto_recv_packet(connfd, pkt, datap);
 
 				int value_size = ntohl(pkt->size);
 				debug("Received value, size %d", value_size);
@@ -57,11 +57,12 @@ void *xacto_client_service(void *arg)
 
 				pkt->type = XACTO_REPLY_PKT;
 				pkt->status = trans_status;
+				pkt->size = 0;
 
 				proto_send_packet(connfd, pkt, *datap);
 
+				free(temp);
 				free(*datap);
-
 
 			}
 			else if(pkt->type == XACTO_GET_PKT)
@@ -95,6 +96,7 @@ void *xacto_client_service(void *arg)
 				{
 					pkt->type = XACTO_REPLY_PKT;
 					pkt->status = trans_status;
+					pkt->size = 0;
 
 					proto_send_packet(connfd, pkt, (*value_p)->content);
 
@@ -120,6 +122,7 @@ void *xacto_client_service(void *arg)
 
 			}
 
+			free(buf_p);
 		}
 		else
 		{
@@ -127,6 +130,8 @@ void *xacto_client_service(void *arg)
 			break;
 		}
 	}
+
+	free(pkt);
 
 	creg_unregister(client_registry, connfd);
 

@@ -96,9 +96,9 @@ void terminate(int status) {
 
     debug("Xacto server terminating");
 
-    shutdown(listenfd, SHUT_RD);
-    close(listenfd);
-    free(connfdp);
+    // shutdown(listenfd, SHUT_RD);
+    // close(listenfd);
+    // free(connfdp);
 
     exit(status);
 }

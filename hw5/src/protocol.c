@@ -39,7 +39,7 @@ int proto_send_packet(int fd, XACTO_PACKET *pkt, void *data)
 	// 	}
 	// }
 
-	// debug("DEBUG_SEND_PKT");
+	debug("DEBUG_SEND_PKT");
 	// printf("fd: %d\n", fd);
 
 	return 0;
@@ -81,7 +81,7 @@ int proto_recv_packet(int fd, XACTO_PACKET *pkt, void **datap)
 	// }
 
 
-	debug("DEBUG_SEND_PKT");
+	debug("DEBUG_RECEIVE_PKT");
 	// printf("fd: %d\n", fd);
 
 	return 0;
